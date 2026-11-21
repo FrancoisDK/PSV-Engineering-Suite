@@ -379,6 +379,10 @@ export function sizeGasPSV(
       ? selectApiOrifice(requiredAreaMm2, overrideOrificeDesignation, overrideNote)
       : null;
 
+  let ratedPressure10PctKpaA: number | null = null;
+  let ratedCapacityAt10PercentKgH: number | null = null;
+  let ratedFlowRegime10Pct: 'CRITICAL' | 'SUBCRITICAL' | 'INVALID' | null = null;
+
   if (orificeSelection) {
     messages.push(...orificeSelection.messages);
     if (
@@ -386,9 +390,84 @@ export function sizeGasPSV(
       requiredAreaMm2 &&
       requiredAreaMm2 > 0
     ) {
+      const selOrifice = orificeSelection.selectedOrifice;
       selectedOrificeCapacityKgH =
-        requiredMassFlowKgH *
-        (orificeSelection.selectedOrifice.effectiveAreaMm2 / requiredAreaMm2);
+        requiredMassFlowKgH * (selOrifice.effectiveAreaMm2 / requiredAreaMm2);
+
+      // Rated capacity of the selected API 526 orifice at 10% overpressure (for API 520 Part II line sizing)
+      // Note: When overpressurePercent === 0 (used when relieving pressure is supplied directly, e.g. blow-by),
+      // p1KpaA already represents the relieving pressure basis; otherwise evaluate P1 at 10% OP = 1.10 * P_set + P_atm.
+      ratedPressure10PctKpaA =
+        input.overpressurePercent === 0
+          ? p1KpaA
+          : input.setPressureKpaG * 1.1 + input.atmosphericPressureKpaA;
+
+      if (!hasErrors && ratedPressure10PctKpaA > p2KpaA) {
+        const r10 = p2KpaA / ratedPressure10PctKpaA;
+        if (r10 <= criticalPressureRatio) {
+          ratedFlowRegime10Pct = 'CRITICAL';
+          const radicalInv = Math.sqrt(
+            input.molecularWeight /
+              (input.relievingTemperatureK * input.compressibilityZ)
+          );
+          ratedCapacityAt10PercentKgH =
+            selOrifice.effectiveAreaMm2 *
+            expansionCoeffC *
+            input.kd *
+            ratedPressure10PctKpaA *
+            input.kb *
+            input.kc *
+            radicalInv;
+        } else {
+          ratedFlowRegime10Pct = 'SUBCRITICAL';
+          const subFactorSI = 3.6 * Math.sqrt(2 / UNIVERSAL_GAS_CONSTANT_J_KMOL_K);
+          const f2Term10 =
+            (k / (k - 1)) *
+            Math.pow(r10, 2 / k) *
+            ((1 - Math.pow(r10, (k - 1) / k)) / (1 - r10));
+          const f2_10 = Math.sqrt(Math.max(0, f2Term10));
+          ratedCapacityAt10PercentKgH =
+            selOrifice.effectiveAreaMm2 *
+            subFactorSI *
+            f2_10 *
+            input.kd *
+            input.kc *
+            Math.sqrt(
+              (input.molecularWeight *
+                ratedPressure10PctKpaA *
+                (ratedPressure10PctKpaA - p2KpaA)) /
+                (input.compressibilityZ * input.relievingTemperatureK)
+            );
+        }
+      } else {
+        ratedFlowRegime10Pct = 'INVALID';
+      }
+
+      if (orificeSelection.nozzleSizeLabel) {
+        steps.push({
+          label: 'Selected API 526 Orifice & Nozzle Sizes',
+          symbol: 'Orifice',
+          equation: 'Smallest standard API 526 orifice with A_eff >= A_req',
+          substitution: `Orifice ${selOrifice.designation} (${selOrifice.effectiveAreaMm2.toFixed(1)} mm²) · Nominal Inlet × Outlet = ${orificeSelection.nozzleSizeLabel}`,
+          value: `${selOrifice.designation} (${orificeSelection.nozzleSizeLabel})`,
+          sourceType: orificeSelection.isOverride ? 'USER_INPUT' : 'STANDARD_LOOKUP',
+        });
+      }
+
+      if (ratedCapacityAt10PercentKgH !== null && ratedPressure10PctKpaA !== null) {
+        steps.push({
+          label: 'PSV Rated Capacity @ 10% Overpressure (Line Sizing Basis)',
+          symbol: 'W_rated,10%',
+          equation:
+            input.overpressurePercent === 0
+              ? 'Evaluated for A_sel at relieving pressure P1'
+              : 'Evaluated for A_sel at P1,10% = 1.10 × P_set + P_atm',
+          substitution: `A_sel = ${selOrifice.effectiveAreaMm2.toFixed(1)} mm², P1,10% = ${ratedPressure10PctKpaA.toFixed(2)} kPa(a), regime = ${ratedFlowRegime10Pct}`,
+          value: ratedCapacityAt10PercentKgH.toFixed(2),
+          unit: 'kg/h',
+          sourceType: 'CALCULATED',
+        });
+      }
     }
   }
 
@@ -430,6 +509,7 @@ export function sizeGasPSV(
       P2_abs: { value: p2KpaA, unit: 'kPa(a)' },
       T1: { value: input.relievingTemperatureK, unit: 'K' },
       massFlow: { value: requiredMassFlowKgH, unit: 'kg/h' },
+      ...(ratedPressure10PctKpaA !== null ? { P1_10pct_abs: { value: ratedPressure10PctKpaA, unit: 'kPa(a)' } } : {}),
     },
     constants: {
       R_u: { value: UNIVERSAL_GAS_CONSTANT_J_KMOL_K, unit: 'J/(kmol·K)', note: 'Universal gas constant' },
@@ -446,6 +526,8 @@ export function sizeGasPSV(
       flowRegime: { value: flowRegime, unit: '-' },
       expansionCoeffC: { value: Number(expansionCoeffC.toFixed(6)), unit: 'SI' },
       ...(subcriticalF2 !== null ? { subcriticalF2: { value: Number(subcriticalF2.toFixed(6)), unit: '-' } } : {}),
+      ...(orificeSelection?.nozzleSizeLabel ? { nominalInletOutlet: { value: orificeSelection.nozzleSizeLabel, unit: 'in' } } : {}),
+      ...(ratedCapacityAt10PercentKgH !== null ? { ratedCapacityAt10PercentKgH: { value: Number(ratedCapacityAt10PercentKgH.toFixed(2)), unit: 'kg/h' } } : {}),
     },
     finalValue: {
       requiredAreaMm2: requiredAreaMm2 !== null ? Number(requiredAreaMm2.toFixed(3)) : null,
@@ -471,6 +553,9 @@ export function sizeGasPSV(
     requiredAreaIn2: requiredAreaMm2 !== null ? requiredAreaMm2 / IN2_TO_MM2 : null,
     orificeSelection,
     selectedOrificeCapacityKgH,
+    ratedPressure10PctKpaA,
+    ratedCapacityAt10PercentKgH,
+    ratedFlowRegime10Pct,
     governingDifferentialKpa: governingDiffKpa,
     trace,
   };

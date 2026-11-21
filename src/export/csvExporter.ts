@@ -29,6 +29,8 @@ export function exportScenariosToCsv(
     'Relieving Mass Flow [kg/h]',
     'Required Effective Area [mm2]',
     'Selected API 526 Orifice',
+    'Nominal Inlet x Outlet Nozzles',
+    'PSV Rated Capacity @ 10% OP [kg/h]',
     'Capacity Margin [%]',
     'Status',
     'Notes',
@@ -51,6 +53,10 @@ export function exportScenariosToCsv(
     sc.relievingMassFlowKgH.toFixed(2),
     sc.requiredAreaMm2 !== null ? sc.requiredAreaMm2.toFixed(2) : '',
     sc.selectedOrificeDesignation ?? '',
+    sc.inletOutletNozzle ?? '',
+    sc.ratedCapacity10PctKgH !== null && sc.ratedCapacity10PctKgH !== undefined
+      ? sc.ratedCapacity10PctKgH.toFixed(2)
+      : '',
     sc.capacityMarginPercent !== null ? sc.capacityMarginPercent.toFixed(2) : '',
     sc.status,
     sc.notes,

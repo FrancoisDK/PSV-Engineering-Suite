@@ -1207,39 +1207,90 @@ export const FireCaseTab: React.FC<FireCaseTabProps> = ({
             <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">
               Fire Case Sizing Summary
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Fire Vapour Load</div>
-                <div className="font-mono font-bold text-slate-900 mt-1">
+                <div className="font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {kgHToMassFlow(result.vapourGenerationKgH, u.massFlow).toFixed(1)}{' '}
                   {u.massFlow}
+                </div>
+                <div className="text-[11px] font-mono text-slate-500 tabular-nums">
+                  {result.vapourGenerationKgH.toFixed(1)} kg/h
                 </div>
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Required PSV Area</div>
-                <div className="font-mono font-bold text-blue-700 mt-1">
+                <div className="font-mono font-bold text-blue-700 mt-1 tabular-nums">
                   {result.psvSizing?.requiredAreaMm2 !== null &&
                   result.psvSizing?.requiredAreaMm2 !== undefined
                     ? `${mm2ToArea(result.psvSizing.requiredAreaMm2, u.area).toFixed(2)} ${u.area}`
                     : '—'}
                 </div>
-              </div>
-              <div className="p-3 rounded bg-slate-50 border border-slate-200">
-                <div className="text-slate-500">Selected API Orifice</div>
-                <div className="font-mono font-bold text-slate-900 mt-1">
-                  {result.psvSizing?.orificeSelection?.selectedOrifice
-                    ? `Orifice ${result.psvSizing.orificeSelection.selectedOrifice.designation}`
-                    : '—'}
-                </div>
-              </div>
-              <div className="p-3 rounded bg-slate-50 border border-slate-200">
-                <div className="text-slate-500">Capacity Margin</div>
-                <div className="font-mono font-bold text-emerald-700 mt-1">
+                <div className="text-[11px] font-mono text-slate-500 tabular-nums">
+                  Margin:{' '}
                   {result.psvSizing?.orificeSelection?.areaMarginPercent !== null &&
                   result.psvSizing?.orificeSelection?.areaMarginPercent !== undefined
                     ? `+${result.psvSizing.orificeSelection.areaMarginPercent.toFixed(1)}%`
                     : '—'}
                 </div>
+              </div>
+              <div className="p-3 rounded bg-slate-50 border border-slate-200">
+                <div className="text-slate-500">Selected API 526 Orifice</div>
+                <div className="font-mono font-bold text-slate-900 mt-1 tabular-nums">
+                  {result.psvSizing?.orificeSelection?.selectedOrifice
+                    ? `Orifice ${result.psvSizing.orificeSelection.selectedOrifice.designation} (${result.psvSizing.orificeSelection.selectedOrifice.effectiveAreaMm2.toFixed(1)} mm²)`
+                    : '—'}
+                </div>
+              </div>
+              <div className="p-3 rounded bg-blue-50 border border-blue-200">
+                <div className="text-blue-900 font-medium">
+                  PSV Inlet × Outlet Nozzles
+                </div>
+                <div className="font-mono font-bold text-blue-800 mt-1 tabular-nums">
+                  {result.psvSizing?.orificeSelection?.nozzleSizeLabel ?? '—'}
+                </div>
+                {result.psvSizing?.orificeSelection?.inletNozzleSizeIn &&
+                  result.psvSizing?.orificeSelection?.outletNozzleSizeIn && (
+                    <div className="text-[11px] font-mono text-slate-600 tabular-nums">
+                      Inlet {result.psvSizing.orificeSelection.inletNozzleSizeIn} · Outlet{' '}
+                      {result.psvSizing.orificeSelection.outletNozzleSizeIn} (API 526)
+                    </div>
+                  )}
+              </div>
+              <div className="p-3 rounded bg-slate-50 border border-slate-200">
+                <div className="text-slate-500">
+                  Orifice Capacity @ {f.fireOverpressurePercent}% Fire OP
+                </div>
+                <div className="font-mono font-bold text-slate-900 mt-1 tabular-nums">
+                  {result.psvSizing?.selectedOrificeCapacityKgH !== null &&
+                  result.psvSizing?.selectedOrificeCapacityKgH !== undefined
+                    ? `${kgHToMassFlow(
+                        result.psvSizing.selectedOrificeCapacityKgH,
+                        u.massFlow
+                      ).toFixed(1)} ${u.massFlow}`
+                    : '—'}
+                </div>
+              </div>
+              <div className="p-3 rounded bg-emerald-50/70 border border-emerald-200">
+                <div className="text-emerald-900 font-medium">
+                  Rated Cap. @ 10% OP (Line Sizing)
+                </div>
+                <div className="font-mono font-bold text-emerald-800 mt-1 tabular-nums">
+                  {result.psvSizing?.ratedCapacityAt10PercentKgH !== null &&
+                  result.psvSizing?.ratedCapacityAt10PercentKgH !== undefined
+                    ? `${kgHToMassFlow(
+                        result.psvSizing.ratedCapacityAt10PercentKgH,
+                        u.massFlow
+                      ).toFixed(1)} ${u.massFlow}`
+                    : '—'}
+                </div>
+                {result.psvSizing?.ratedCapacityAt10PercentKgH !== null &&
+                  result.psvSizing?.ratedCapacityAt10PercentKgH !== undefined && (
+                    <div className="text-[11px] font-mono text-slate-600 tabular-nums">
+                      {result.psvSizing.ratedCapacityAt10PercentKgH.toFixed(1)} kg/h · P1,10% ={' '}
+                      {result.psvSizing.ratedPressure10PctKpaA?.toFixed(1)} kPa(a)
+                    </div>
+                  )}
               </div>
             </div>
           </div>

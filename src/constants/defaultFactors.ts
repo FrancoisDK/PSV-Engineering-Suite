@@ -220,6 +220,8 @@ export function createBlankProjectDocument(): ProjectDocument {
       vapourPressureKpaA: 10,
       relievingTemperatureK: 313.15,
       upstreamPressureKpaG: 1100,
+      setPressureKpaG: 1000,
+      overpressurePercent: 10,
       totalBackpressureKpaG: 50,
       atmosphericPressureKpaA: STANDARD_ATMOSPHERE_KPA,
       kd: 0.65,

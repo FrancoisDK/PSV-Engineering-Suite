@@ -390,6 +390,11 @@ export function sizeLiquidPSV(
       ? selectApiOrifice(requiredAreaMm2, overrideOrificeDesignation, overrideNote)
       : null;
 
+  let selectedOrificeCapacityKgH: number | null = null;
+  let ratedPressure10PctKpaA: number | null = null;
+  let ratedCapacityAt10PercentM3H: number | null = null;
+  let ratedCapacityAt10PercentKgH: number | null = null;
+
   if (orificeSelection) {
     messages.push(...orificeSelection.messages);
     if (
@@ -397,9 +402,77 @@ export function sizeLiquidPSV(
       requiredAreaMm2 &&
       requiredAreaMm2 > 0
     ) {
+      const selOrifice = orificeSelection.selectedOrifice;
       selectedOrificeCapacityM3H =
-        volFlowM3H *
-        (orificeSelection.selectedOrifice.effectiveAreaMm2 / requiredAreaMm2);
+        volFlowM3H * (selOrifice.effectiveAreaMm2 / requiredAreaMm2);
+      selectedOrificeCapacityKgH = selectedOrificeCapacityM3H * densityKgM3;
+
+      // Evaluate rated capacity of selected orifice at 10% overpressure for API 520 Part II line sizing
+      if (
+        input.setPressureKpaG !== undefined &&
+        Number.isFinite(input.setPressureKpaG) &&
+        input.setPressureKpaG > 0
+      ) {
+        ratedPressure10PctKpaA =
+          input.setPressureKpaG * 1.1 + input.atmosphericPressureKpaA;
+      } else if (
+        input.overpressurePercent !== undefined &&
+        Number.isFinite(input.overpressurePercent) &&
+        input.overpressurePercent > 0
+      ) {
+        const inferredSetG =
+          input.upstreamPressureKpaG / (1 + input.overpressurePercent / 100);
+        ratedPressure10PctKpaA = inferredSetG * 1.1 + input.atmosphericPressureKpaA;
+      } else {
+        ratedPressure10PctKpaA = p1KpaA;
+      }
+
+      const deltaP10 = ratedPressure10PctKpaA - p2KpaA;
+      if (!hasErrors && deltaP10 > 0 && densityKgM3 > 0) {
+        const qKv1 =
+          ((selOrifice.effectiveAreaMm2 * input.kd * input.kw * input.kc) /
+            liquidSiConstant) *
+          Math.sqrt(deltaP10 / densityKgM3);
+
+        if (input.useIterativeKv) {
+          let qTrial = qKv1 * (kvFinal ?? 1.0);
+          for (let iter = 0; iter < 8; iter++) {
+            const { kv } = computeLiquidReynoldsAndKv(
+              qTrial,
+              specificGravity,
+              input.dynamicViscosityCp,
+              selOrifice.effectiveAreaMm2
+            );
+            qTrial = qKv1 * kv;
+          }
+          ratedCapacityAt10PercentM3H = qTrial;
+        } else {
+          ratedCapacityAt10PercentM3H = qKv1 * (kvFinal ?? 1.0);
+        }
+        ratedCapacityAt10PercentKgH = ratedCapacityAt10PercentM3H * densityKgM3;
+      }
+
+      if (orificeSelection.nozzleSizeLabel) {
+        steps.push({
+          label: 'Selected API 526 Orifice & Nozzle Sizes',
+          symbol: 'Orifice',
+          equation: 'Smallest standard API 526 orifice with A_eff >= A_req',
+          substitution: `Orifice ${selOrifice.designation} (${selOrifice.effectiveAreaMm2.toFixed(1)} mm²) · Nominal Inlet × Outlet = ${orificeSelection.nozzleSizeLabel}`,
+          value: `${selOrifice.designation} (${orificeSelection.nozzleSizeLabel})`,
+          sourceType: orificeSelection.isOverride ? 'USER_INPUT' : 'STANDARD_LOOKUP',
+        });
+      }
+
+      if (ratedCapacityAt10PercentM3H !== null && ratedCapacityAt10PercentKgH !== null) {
+        steps.push({
+          label: 'PSV Rated Capacity @ 10% Overpressure (Line Sizing Basis)',
+          symbol: 'Q_rated,10%',
+          equation: 'Evaluated for A_sel at P1,10% = 1.10 × P_set + P_atm',
+          substitution: `A_sel = ${selOrifice.effectiveAreaMm2.toFixed(1)} mm², P1,10% = ${(ratedPressure10PctKpaA ?? p1KpaA).toFixed(2)} kPa(a)`,
+          value: `${ratedCapacityAt10PercentM3H.toFixed(2)} m³/h (${ratedCapacityAt10PercentKgH.toFixed(1)} kg/h)`,
+          sourceType: 'CALCULATED',
+        });
+      }
     }
   }
 
@@ -441,6 +514,7 @@ export function sizeLiquidPSV(
       P2_abs: { value: p2KpaA, unit: 'kPa(a)' },
       deltaP: { value: deltaPKpa, unit: 'kPa' },
       specificGravity: { value: specificGravity, unit: '-' },
+      ...(ratedPressure10PctKpaA !== null ? { P1_10pct_abs: { value: ratedPressure10PctKpaA, unit: 'kPa(a)' } } : {}),
     },
     constants: {
       liquidSiConstant: { value: liquidSiConstant, unit: 'mm²·(kPa·m³/kg)^0.5 / (m³/h)' },
@@ -456,6 +530,8 @@ export function sizeLiquidPSV(
       reynoldsNumber: { value: reynoldsNumber !== null ? Number(reynoldsNumber.toFixed(2)) : 'N/A', unit: '-' },
       iterationCount: { value: iterationCount, unit: 'iterations' },
       converged: { value: String(converged), unit: '-' },
+      ...(orificeSelection?.nozzleSizeLabel ? { nominalInletOutlet: { value: orificeSelection.nozzleSizeLabel, unit: 'in' } } : {}),
+      ...(ratedCapacityAt10PercentKgH !== null ? { ratedCapacityAt10PercentKgH: { value: Number(ratedCapacityAt10PercentKgH.toFixed(2)), unit: 'kg/h' } } : {}),
     },
     finalValue: {
       requiredAreaMm2: requiredAreaMm2 !== null ? Number(requiredAreaMm2.toFixed(3)) : null,
@@ -485,6 +561,10 @@ export function sizeLiquidPSV(
     requiredAreaIn2: requiredAreaMm2 !== null ? requiredAreaMm2 / IN2_TO_MM2 : null,
     orificeSelection,
     selectedOrificeCapacityM3H,
+    selectedOrificeCapacityKgH,
+    ratedPressure10PctKpaA,
+    ratedCapacityAt10PercentM3H,
+    ratedCapacityAt10PercentKgH,
     trace,
   };
 }

@@ -27,6 +27,9 @@ export function selectApiOrifice(
       recommendedOrifice: null,
       nextLargerOrifice: null,
       selectedOrifice: null,
+      inletNozzleSizeIn: null,
+      outletNozzleSizeIn: null,
+      nozzleSizeLabel: null,
       isOverride: false,
       overrideNote: overrideNote ?? '',
       exceedsLargestStandard: false,
@@ -114,11 +117,21 @@ export function selectApiOrifice(
     }
   }
 
+  const inletNozzleSizeIn = selectedOrifice?.nominalInletSizeIn ?? null;
+  const outletNozzleSizeIn = selectedOrifice?.nominalOutletSizeIn ?? null;
+  const nozzleSizeLabel =
+    inletNozzleSizeIn && outletNozzleSizeIn
+      ? `${inletNozzleSizeIn} × ${outletNozzleSizeIn}`
+      : null;
+
   return {
     requiredAreaMm2,
     recommendedOrifice,
     nextLargerOrifice,
     selectedOrifice,
+    inletNozzleSizeIn,
+    outletNozzleSizeIn,
+    nozzleSizeLabel,
     isOverride,
     overrideNote: trimmedNote,
     exceedsLargestStandard,

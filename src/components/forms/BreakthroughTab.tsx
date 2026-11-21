@@ -648,7 +648,7 @@ export const BreakthroughTab: React.FC<BreakthroughTabProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Breakthrough Relieving Rate</div>
-                <div className="font-mono font-bold text-slate-900 mt-1">
+                <div className="font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {result.breakthroughMassFlowKgH !== null
                     ? `${kgHToMassFlow(result.breakthroughMassFlowKgH, u.massFlow).toFixed(1)} ${u.massFlow}`
                     : '—'}
@@ -656,7 +656,7 @@ export const BreakthroughTab: React.FC<BreakthroughTabProps> = ({
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Required Destination PSV Area</div>
-                <div className="font-mono font-bold text-blue-700 mt-1">
+                <div className="font-mono font-bold text-blue-700 mt-1 tabular-nums">
                   {result.psvSizing?.requiredAreaMm2 !== null &&
                   result.psvSizing?.requiredAreaMm2 !== undefined
                     ? `${mm2ToArea(result.psvSizing.requiredAreaMm2, u.area).toFixed(3)} ${u.area}`
@@ -665,9 +665,59 @@ export const BreakthroughTab: React.FC<BreakthroughTabProps> = ({
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Selected API 526 Orifice</div>
-                <div className="font-mono font-bold text-slate-900 mt-1">
+                <div className="font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {result.psvSizing?.orificeSelection?.selectedOrifice
-                    ? `Orifice ${result.psvSizing.orificeSelection.selectedOrifice.designation}`
+                    ? `Orifice ${result.psvSizing.orificeSelection.selectedOrifice.designation} (${result.psvSizing.orificeSelection.selectedOrifice.effectiveAreaMm2.toFixed(1)} mm²)`
+                    : '—'}
+                </div>
+              </div>
+              <div className="p-3 rounded bg-blue-50 border border-blue-200">
+                <div className="text-blue-900 font-medium">
+                  PSV Inlet × Outlet Nozzles
+                </div>
+                <div className="font-mono font-bold text-blue-800 mt-1 tabular-nums">
+                  {result.psvSizing?.orificeSelection?.nozzleSizeLabel ?? '—'}
+                </div>
+                {result.psvSizing?.orificeSelection?.inletNozzleSizeIn &&
+                  result.psvSizing?.orificeSelection?.outletNozzleSizeIn && (
+                    <div className="text-[11px] font-mono text-slate-600 tabular-nums">
+                      Inlet {result.psvSizing.orificeSelection.inletNozzleSizeIn} · Outlet{' '}
+                      {result.psvSizing.orificeSelection.outletNozzleSizeIn} (API 526)
+                    </div>
+                  )}
+              </div>
+              <div className="p-3 rounded bg-emerald-50/70 border border-emerald-200">
+                <div className="text-emerald-900 font-medium">
+                  Rated Cap. @ 10% OP (Line Sizing)
+                </div>
+                <div className="font-mono font-bold text-emerald-800 mt-1 tabular-nums">
+                  {result.psvSizing?.ratedCapacityAt10PercentKgH !== null &&
+                  result.psvSizing?.ratedCapacityAt10PercentKgH !== undefined
+                    ? `${kgHToMassFlow(
+                        result.psvSizing.ratedCapacityAt10PercentKgH,
+                        u.massFlow
+                      ).toFixed(1)} ${u.massFlow}`
+                    : '—'}
+                </div>
+                {result.psvSizing?.ratedCapacityAt10PercentKgH !== null &&
+                  result.psvSizing?.ratedCapacityAt10PercentKgH !== undefined && (
+                    <div className="text-[11px] font-mono text-slate-600 tabular-nums">
+                      {result.psvSizing.ratedCapacityAt10PercentKgH.toFixed(1)} kg/h · P1 ={' '}
+                      {result.psvSizing.ratedPressure10PctKpaA?.toFixed(1)} kPa(a)
+                    </div>
+                  )}
+              </div>
+              <div className="p-3 rounded bg-slate-50 border border-slate-200">
+                <div className="text-slate-500">Area Margin & Utilisation</div>
+                <div className="font-mono font-bold text-slate-900 mt-1 tabular-nums">
+                  {result.psvSizing?.orificeSelection?.areaMarginPercent !== null &&
+                  result.psvSizing?.orificeSelection?.areaMarginPercent !== undefined
+                    ? `+${result.psvSizing.orificeSelection.areaMarginPercent.toFixed(1)}%`
+                    : '—'}{' '}
+                  ·{' '}
+                  {result.psvSizing?.orificeSelection?.utilisationPercent !== null &&
+                  result.psvSizing?.orificeSelection?.utilisationPercent !== undefined
+                    ? `${result.psvSizing.orificeSelection.utilisationPercent.toFixed(1)}%`
                     : '—'}
                 </div>
               </div>

@@ -1,6 +1,10 @@
 import React from 'react';
 import { selectApiOrifice } from '../../calculations/orificeSelection';
-import { mm2ToArea } from '../../calculations/unitConversions';
+import {
+  kgHToMassFlow,
+  m3HToVolFlow,
+  mm2ToArea,
+} from '../../calculations/unitConversions';
 import {
   API_526_EDITION_NOTE,
   API_526_ORIFICES,
@@ -15,10 +19,19 @@ import {
 import { StatusBadge } from '../common/StatusBadge';
 import { ValidationBanner } from '../common/ValidationBanner';
 
+export interface GoverningRatedCapacityInfo {
+  ratedCapacityAt10PercentKgH: number | null;
+  ratedCapacityAt10PercentM3H?: number | null;
+  ratedPressure10PctKpaA: number | null;
+  atmosphericPressureKpaA: number;
+  fluidPhaseLabel?: string;
+}
+
 interface FinalSelectionTabProps {
   document: ProjectDocument;
   governingScenario: ReliefScenario | null;
   activeModuleRequiredAreaMm2: number | null;
+  governingRatedInfo?: GoverningRatedCapacityInfo | null;
   onChangeSelection: (patch: Partial<FinalPSVSelection>) => void;
 }
 
@@ -26,6 +39,7 @@ export const FinalSelectionTab: React.FC<FinalSelectionTabProps> = ({
   document,
   governingScenario,
   activeModuleRequiredAreaMm2,
+  governingRatedInfo,
   onChangeSelection,
 }) => {
   const sel = document.psvSelection;
@@ -66,10 +80,10 @@ export const FinalSelectionTab: React.FC<FinalSelectionTabProps> = ({
         <ValidationBanner messages={orificeRes.messages} />
 
         {/* Summary KPI Strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 text-xs">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div className="p-3 rounded bg-slate-50 border border-slate-200">
             <div className="text-slate-500">Governing Area</div>
-            <div className="font-mono font-bold text-blue-700 mt-1">
+            <div className="font-mono font-bold text-blue-700 mt-1 tabular-nums">
               {governingAreaMm2 > 0
                 ? `${mm2ToArea(governingAreaMm2, u.area).toFixed(2)} ${u.area}`
                 : '—'}
@@ -86,25 +100,73 @@ export const FinalSelectionTab: React.FC<FinalSelectionTabProps> = ({
             </div>
           </div>
           <div className="p-3 rounded bg-slate-50 border border-slate-200">
-            <div className="text-slate-500">Next Larger</div>
-            <div className="font-mono font-bold text-slate-900 mt-1">
-              {orificeRes.nextLargerOrifice
-                ? `Orifice ${orificeRes.nextLargerOrifice.designation}`
-                : '—'}
-            </div>
-          </div>
-          <div className="p-3 rounded bg-slate-50 border border-slate-200">
             <div className="text-slate-500">User Selected</div>
-            <div className="font-mono font-bold text-slate-900 mt-1">
+            <div className="font-mono font-bold text-slate-900 mt-1 tabular-nums">
               {orificeRes.selectedOrifice
                 ? `Orifice ${orificeRes.selectedOrifice.designation} (${orificeRes.selectedOrifice.effectiveAreaIn2.toFixed(3)} in²)`
                 : 'None'}
             </div>
           </div>
+          <div className="p-3 rounded bg-blue-50 border border-blue-200">
+            <div className="text-blue-900 font-medium">
+              Inlet × Outlet Nozzles
+            </div>
+            <div className="font-mono font-bold text-blue-800 mt-1 tabular-nums">
+              {orificeRes.nozzleSizeLabel ?? '—'}
+            </div>
+            {orificeRes.inletNozzleSizeIn && orificeRes.outletNozzleSizeIn && (
+              <div className="text-[11px] font-mono text-slate-600 mt-0.5">
+                Inlet {orificeRes.inletNozzleSizeIn} · Outlet {orificeRes.outletNozzleSizeIn}
+              </div>
+            )}
+          </div>
+          <div className="p-3 rounded bg-slate-50 border border-slate-200">
+            <div className="text-slate-500">Next Larger</div>
+            <div className="font-mono font-bold text-slate-900 mt-1">
+              {orificeRes.nextLargerOrifice
+                ? `Orifice ${orificeRes.nextLargerOrifice.designation}${
+                    orificeRes.nextLargerOrifice.nominalInletSizeIn
+                      ? ` (${orificeRes.nextLargerOrifice.nominalInletSizeIn} × ${orificeRes.nextLargerOrifice.nominalOutletSizeIn})`
+                      : ''
+                  }`
+                : '—'}
+            </div>
+          </div>
+          <div className="p-3 rounded bg-emerald-50/70 border border-emerald-200">
+            <div className="text-emerald-900 font-medium">
+              Rated Cap. @ 10% OP (Line Sizing)
+            </div>
+            <div className="font-mono font-bold text-emerald-800 mt-1 tabular-nums">
+              {governingRatedInfo?.ratedCapacityAt10PercentKgH !== null &&
+              governingRatedInfo?.ratedCapacityAt10PercentKgH !== undefined
+                ? `${kgHToMassFlow(
+                    governingRatedInfo.ratedCapacityAt10PercentKgH,
+                    u.massFlow
+                  ).toFixed(1)} ${u.massFlow}`
+                : '—'}
+            </div>
+            {governingRatedInfo?.ratedCapacityAt10PercentM3H !== null &&
+            governingRatedInfo?.ratedCapacityAt10PercentM3H !== undefined ? (
+              <div className="text-[11px] font-mono text-slate-600 mt-0.5 tabular-nums">
+                {m3HToVolFlow(
+                  governingRatedInfo.ratedCapacityAt10PercentM3H,
+                  u.liquidVolFlow
+                ).toFixed(2)}{' '}
+                {u.liquidVolFlow}
+              </div>
+            ) : (
+              governingRatedInfo?.ratedPressure10PctKpaA !== null &&
+              governingRatedInfo?.ratedPressure10PctKpaA !== undefined && (
+                <div className="text-[11px] font-mono text-slate-600 mt-0.5 tabular-nums">
+                  @ {governingRatedInfo.ratedPressure10PctKpaA.toFixed(1)} kPa(a)
+                </div>
+              )
+            )}
+          </div>
           <div className="p-3 rounded bg-slate-50 border border-slate-200">
             <div className="text-slate-500">Area Margin</div>
             <div
-              className={`font-mono font-bold mt-1 ${
+              className={`font-mono font-bold mt-1 tabular-nums ${
                 (orificeRes.areaMarginPercent ?? 0) < 0
                   ? 'text-red-700'
                   : 'text-emerald-700'
@@ -117,7 +179,7 @@ export const FinalSelectionTab: React.FC<FinalSelectionTabProps> = ({
           </div>
           <div className="p-3 rounded bg-slate-50 border border-slate-200">
             <div className="text-slate-500">Utilisation</div>
-            <div className="font-mono font-bold text-slate-900 mt-1">
+            <div className="font-mono font-bold text-slate-900 mt-1 tabular-nums">
               {orificeRes.utilisationPercent !== null
                 ? `${orificeRes.utilisationPercent.toFixed(1)}%`
                 : '—'}
@@ -143,7 +205,7 @@ export const FinalSelectionTab: React.FC<FinalSelectionTabProps> = ({
               <option value="">Automatic (Smallest Standard &ge; Required)</option>
               {API_526_ORIFICES.map((o) => (
                 <option key={o.designation} value={o.designation}>
-                  Override: {o.designation} ({o.effectiveAreaIn2.toFixed(3)} in² /{' '}
+                  Override: {o.designation} ({o.nominalInletSizeIn} × {o.nominalOutletSizeIn} · {o.effectiveAreaIn2.toFixed(3)} in² /{' '}
                   {o.effectiveAreaMm2.toFixed(1)} mm²)
                 </option>
               ))}

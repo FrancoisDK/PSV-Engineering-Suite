@@ -75,4 +75,31 @@ describe('Gas PSV Sizing & API Orifice Selection', () => {
     expect(badK.status).toBe('INCOMPLETE');
     expect(badK.messages.some((m) => m.severity === 'ERROR')).toBe(true);
   });
+
+  it('reports API 526 nominal inlet x outlet nozzle sizes and rated capacity at 10% OP for line sizing', () => {
+    const selH = selectApiOrifice(400);
+    expect(selH.inletNozzleSizeIn).toBe('2"');
+    expect(selH.outletNozzleSizeIn).toBe('3"');
+    expect(selH.nozzleSizeLabel).toBe('2" × 3"');
+
+    // At 10% overpressure, rated capacity @ 10% OP matches selectedOrificeCapacityKgH
+    const res10 = sizeGasPSV(makeBaseGasInput(), DEFAULT_STANDARD_BASIS);
+    expect(res10.orificeSelection?.nozzleSizeLabel).toBeTruthy();
+    expect(res10.ratedPressure10PctKpaA).toBeCloseTo(1000 * 1.1 + 101.325, 3);
+    expect(res10.ratedCapacityAt10PercentKgH!).toBeCloseTo(
+      res10.selectedOrificeCapacityKgH!,
+      1
+    );
+
+    // At 21% overpressure, rated capacity @ 10% OP is strictly lower than capacity at 21% OP
+    const res21 = sizeGasPSV(
+      { ...makeBaseGasInput(), overpressurePercent: 21 },
+      DEFAULT_STANDARD_BASIS
+    );
+    expect(res21.ratedPressure10PctKpaA).toBeCloseTo(1000 * 1.1 + 101.325, 3);
+    expect(res21.ratedCapacityAt10PercentKgH!).toBeLessThan(
+      res21.selectedOrificeCapacityKgH!
+    );
+    expect(res21.ratedCapacityAt10PercentKgH!).toBeGreaterThan(0);
+  });
 });

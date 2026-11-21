@@ -99,6 +99,8 @@ export const ScenarioComparisonTab: React.FC<ScenarioComparisonTabProps> = ({
       relievingMassFlowKgH: 0,
       requiredAreaMm2: null,
       selectedOrificeDesignation: null,
+      inletOutletNozzle: null,
+      ratedCapacity10PctKgH: null,
       capacityMarginPercent: null,
       status: 'INCOMPLETE',
       notes: '',
@@ -158,10 +160,14 @@ export const ScenarioComparisonTab: React.FC<ScenarioComparisonTabProps> = ({
           <div className="text-sm font-bold text-slate-900 mt-1">
             {governingScenario ? governingScenario.name : 'None evaluated'}
           </div>
-          <div className="text-[11px] font-mono text-blue-800 mt-0.5">
+          <div className="text-[11px] font-mono text-blue-800 mt-0.5 tabular-nums">
             {governingScenario?.requiredAreaMm2 !== null &&
             governingScenario?.requiredAreaMm2 !== undefined
-              ? `${mm2ToArea(governingScenario.requiredAreaMm2, u.area).toFixed(2)} ${u.area} · Orifice ${governingScenario.selectedOrificeDesignation ?? '—'}`
+              ? `${mm2ToArea(governingScenario.requiredAreaMm2, u.area).toFixed(2)} ${u.area} · Orifice ${governingScenario.selectedOrificeDesignation ?? '—'}${
+                  governingScenario.inletOutletNozzle
+                    ? ` (${governingScenario.inletOutletNozzle})`
+                    : ''
+                }`
               : '—'}
           </div>
         </div>
@@ -301,6 +307,8 @@ export const ScenarioComparisonTab: React.FC<ScenarioComparisonTabProps> = ({
                   </button>
                 </th>
                 <th className="py-2.5 px-3">Orifice</th>
+                <th className="py-2.5 px-3">Inlet × Outlet</th>
+                <th className="py-2.5 px-3 text-right">Rated Cap. (10% OP)</th>
                 <th className="py-2.5 px-3 text-right">Margin</th>
                 <th className="py-2.5 px-3">Status</th>
                 <th className="py-2.5 px-3">Protection / Simultaneous</th>
@@ -310,7 +318,7 @@ export const ScenarioComparisonTab: React.FC<ScenarioComparisonTabProps> = ({
             <tbody className="divide-y divide-slate-100">
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="py-8 text-center text-slate-500">
+                  <td colSpan={15} className="py-8 text-center text-slate-500">
                     No saved scenarios yet. Add a scenario above or load a demonstration case.
                   </td>
                 </tr>
@@ -400,6 +408,7 @@ export const ScenarioComparisonTab: React.FC<ScenarioComparisonTabProps> = ({
                                 requiredAreaMm2: area,
                                 selectedOrificeDesignation:
                                   sel.selectedOrifice?.designation ?? null,
+                                inletOutletNozzle: sel.nozzleSizeLabel,
                                 capacityMarginPercent: sel.areaMarginPercent,
                                 status: sel.validSelection ? 'PASS' : 'FAIL',
                               });
@@ -414,6 +423,18 @@ export const ScenarioComparisonTab: React.FC<ScenarioComparisonTabProps> = ({
                       </td>
                       <td className="py-2 px-3 font-mono font-semibold">
                         {sc.selectedOrificeDesignation ?? '—'}
+                      </td>
+                      <td className="py-2 px-3 font-mono text-slate-700 whitespace-nowrap">
+                        {sc.inletOutletNozzle ?? '—'}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono tabular-nums text-emerald-800 whitespace-nowrap">
+                        {sc.ratedCapacity10PctKgH !== null &&
+                        sc.ratedCapacity10PctKgH !== undefined
+                          ? `${kgHToMassFlow(
+                              sc.ratedCapacity10PctKgH,
+                              u.massFlow
+                            ).toFixed(1)} ${u.massFlow}`
+                          : '—'}
                       </td>
                       <td className="py-2 px-3 text-right font-mono tabular-nums">
                         {sc.capacityMarginPercent !== null

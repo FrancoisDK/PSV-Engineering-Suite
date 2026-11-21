@@ -203,6 +203,8 @@ export const PSVCalculator: React.FC = () => {
           requiredAreaMm2: gasResult.requiredAreaMm2,
           selectedOrificeDesignation:
             gasResult.orificeSelection?.selectedOrifice?.designation ?? null,
+          inletOutletNozzle: gasResult.orificeSelection?.nozzleSizeLabel ?? null,
+          ratedCapacity10PctKgH: gasResult.ratedCapacityAt10PercentKgH,
           capacityMarginPercent:
             gasResult.orificeSelection?.areaMarginPercent ?? null,
           status: gasResult.status,
@@ -217,6 +219,8 @@ export const PSVCalculator: React.FC = () => {
           requiredAreaMm2: liquidResult.requiredAreaMm2,
           selectedOrificeDesignation:
             liquidResult.orificeSelection?.selectedOrifice?.designation ?? null,
+          inletOutletNozzle: liquidResult.orificeSelection?.nozzleSizeLabel ?? null,
+          ratedCapacity10PctKgH: liquidResult.ratedCapacityAt10PercentKgH,
           capacityMarginPercent:
             liquidResult.orificeSelection?.areaMarginPercent ?? null,
           status: liquidResult.status,
@@ -235,6 +239,11 @@ export const PSVCalculator: React.FC = () => {
           selectedOrificeDesignation:
             breakthroughResult.psvSizing?.orificeSelection?.selectedOrifice
               ?.designation ?? null,
+          inletOutletNozzle:
+            breakthroughResult.psvSizing?.orificeSelection?.nozzleSizeLabel ??
+            null,
+          ratedCapacity10PctKgH:
+            breakthroughResult.psvSizing?.ratedCapacityAt10PercentKgH ?? null,
           capacityMarginPercent:
             breakthroughResult.psvSizing?.orificeSelection?.areaMarginPercent ??
             null,
@@ -255,6 +264,10 @@ export const PSVCalculator: React.FC = () => {
           selectedOrificeDesignation:
             fireResult.psvSizing?.orificeSelection?.selectedOrifice
               ?.designation ?? null,
+          inletOutletNozzle:
+            fireResult.psvSizing?.orificeSelection?.nozzleSizeLabel ?? null,
+          ratedCapacity10PctKgH:
+            fireResult.psvSizing?.ratedCapacityAt10PercentKgH ?? null,
           capacityMarginPercent:
             fireResult.psvSizing?.orificeSelection?.areaMarginPercent ?? null,
           status: fireResult.status,
@@ -328,6 +341,9 @@ export const PSVCalculator: React.FC = () => {
         requiredAreaMm2: liquidResult.requiredAreaMm2,
         orificeSelection: liquidResult.orificeSelection,
         status: liquidResult.status,
+        ratedPressure10PctKpaA: liquidResult.ratedPressure10PctKpaA,
+        ratedCapacityAt10PercentKgH: liquidResult.ratedCapacityAt10PercentKgH,
+        ratedCapacityAt10PercentM3H: liquidResult.ratedCapacityAt10PercentM3H,
       };
     }
     if (activeTab === 'breakthrough') {
@@ -347,6 +363,10 @@ export const PSVCalculator: React.FC = () => {
         orificeSelection:
           breakthroughResult.psvSizing?.orificeSelection ?? null,
         status: breakthroughResult.status,
+        ratedPressure10PctKpaA:
+          breakthroughResult.psvSizing?.ratedPressure10PctKpaA ?? null,
+        ratedCapacityAt10PercentKgH:
+          breakthroughResult.psvSizing?.ratedCapacityAt10PercentKgH ?? null,
       };
     }
     if (activeTab === 'fire') {
@@ -362,6 +382,10 @@ export const PSVCalculator: React.FC = () => {
         requiredAreaMm2: fireResult.psvSizing?.requiredAreaMm2 ?? null,
         orificeSelection: fireResult.psvSizing?.orificeSelection ?? null,
         status: fireResult.status,
+        ratedPressure10PctKpaA:
+          fireResult.psvSizing?.ratedPressure10PctKpaA ?? null,
+        ratedCapacityAt10PercentKgH:
+          fireResult.psvSizing?.ratedCapacityAt10PercentKgH ?? null,
       };
     }
     // Default / Gas / Design Basis / Comparison / Selection
@@ -378,6 +402,24 @@ export const PSVCalculator: React.FC = () => {
             : govMod === 'fire'
               ? fireResult.psvSizing?.orificeSelection ?? null
               : gasResult.orificeSelection;
+      const govRatedPressure10PctKpaA =
+        govMod === 'liquid'
+          ? liquidResult.ratedPressure10PctKpaA
+          : govMod === 'breakthrough'
+            ? breakthroughResult.psvSizing?.ratedPressure10PctKpaA ?? null
+            : govMod === 'fire'
+              ? fireResult.psvSizing?.ratedPressure10PctKpaA ?? null
+              : gasResult.ratedPressure10PctKpaA;
+      const govRatedCapacityKgH =
+        govMod === 'liquid'
+          ? liquidResult.ratedCapacityAt10PercentKgH
+          : govMod === 'breakthrough'
+            ? breakthroughResult.psvSizing?.ratedCapacityAt10PercentKgH ?? null
+            : govMod === 'fire'
+              ? fireResult.psvSizing?.ratedCapacityAt10PercentKgH ?? null
+              : gasResult.ratedCapacityAt10PercentKgH;
+      const govRatedCapacityM3H =
+        govMod === 'liquid' ? liquidResult.ratedCapacityAt10PercentM3H : null;
       return {
         scenarioLabel: `Governing: ${governingScenario.name}`,
         fluidPhaseLabel: governingScenario.fluidPhase.replace('_', '/'),
@@ -388,6 +430,9 @@ export const PSVCalculator: React.FC = () => {
         requiredAreaMm2: governingScenario.requiredAreaMm2,
         orificeSelection: govOrifice,
         status: governingScenario.status,
+        ratedPressure10PctKpaA: govRatedPressure10PctKpaA,
+        ratedCapacityAt10PercentKgH: govRatedCapacityKgH,
+        ratedCapacityAt10PercentM3H: govRatedCapacityM3H,
       };
     }
     return {
@@ -401,6 +446,8 @@ export const PSVCalculator: React.FC = () => {
       requiredAreaMm2: gasResult.requiredAreaMm2,
       orificeSelection: gasResult.orificeSelection,
       status: gasResult.status,
+      ratedPressure10PctKpaA: gasResult.ratedPressure10PctKpaA,
+      ratedCapacityAt10PercentKgH: gasResult.ratedCapacityAt10PercentKgH,
     };
   }, [
     activeTab,
@@ -453,6 +500,8 @@ export const PSVCalculator: React.FC = () => {
         liquidInput: {
           ...prev.liquidInput,
           upstreamPressureKpaG: relG,
+          setPressureKpaG: db.setPressureKpaG,
+          overpressurePercent: db.overpressurePercent,
           totalBackpressureKpaG: totalBp,
           atmosphericPressureKpaA: db.atmosphericPressureKpaA,
           relievingTemperatureK: db.relievingTemperatureK,
@@ -661,6 +710,17 @@ export const PSVCalculator: React.FC = () => {
                   document={doc}
                   governingScenario={governingScenario}
                   activeModuleRequiredAreaMm2={gasResult.requiredAreaMm2}
+                  governingRatedInfo={{
+                    ratedCapacityAt10PercentKgH:
+                      stickySummary.ratedCapacityAt10PercentKgH ?? null,
+                    ratedCapacityAt10PercentM3H:
+                      stickySummary.ratedCapacityAt10PercentM3H ?? null,
+                    ratedPressure10PctKpaA:
+                      stickySummary.ratedPressure10PctKpaA ?? null,
+                    atmosphericPressureKpaA:
+                      stickySummary.atmosphericPressureKpaA,
+                    fluidPhaseLabel: stickySummary.fluidPhaseLabel,
+                  }}
                   onChangeSelection={(patch) =>
                     updateDoc((d) => ({
                       ...d,

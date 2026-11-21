@@ -52,4 +52,28 @@ describe('Liquid PSV Sizing & Viscosity Iteration', () => {
       )
     ).toBe(true);
   });
+
+  it('provides nominal inlet x outlet nozzle sizes and rated capacity @ 10% overpressure for line sizing', () => {
+    const res = sizeLiquidPSV(
+      {
+        ...makeBaseLiquidInput(),
+        setPressureKpaG: 1000,
+        overpressurePercent: 20,
+        upstreamPressureKpaG: 1200,
+      },
+      DEFAULT_STANDARD_BASIS
+    );
+    expect(res.orificeSelection?.inletNozzleSizeIn).toBeTruthy();
+    expect(res.orificeSelection?.outletNozzleSizeIn).toBeTruthy();
+    expect(res.orificeSelection?.nozzleSizeLabel).toContain('×');
+    expect(res.ratedPressure10PctKpaA).toBeCloseTo(1000 * 1.1 + 101.325, 3);
+    expect(res.ratedCapacityAt10PercentM3H!).toBeGreaterThan(0);
+    expect(res.ratedCapacityAt10PercentM3H!).toBeLessThan(
+      res.selectedOrificeCapacityM3H!
+    );
+    expect(res.ratedCapacityAt10PercentKgH!).toBeCloseTo(
+      res.ratedCapacityAt10PercentM3H! * 1125,
+      1
+    );
+  });
 });

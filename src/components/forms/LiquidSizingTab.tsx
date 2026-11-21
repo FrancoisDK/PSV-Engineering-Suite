@@ -551,23 +551,26 @@ export const LiquidSizingTab: React.FC<LiquidSizingTabProps> = ({
             <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">
               Liquid PSV Sizing Results
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Required Volumetric Flow</div>
-                <div className="text-sm font-mono font-bold text-slate-900 mt-1">
+                <div className="text-sm font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {m3HToVolFlow(result.volumetricFlowM3H, u.liquidVolFlow).toFixed(2)}{' '}
                   {u.liquidVolFlow}
+                </div>
+                <div className="text-[11px] font-mono text-slate-500 tabular-nums">
+                  {kgHToMassFlow(result.massFlowKgH, u.massFlow).toFixed(1)} {u.massFlow}
                 </div>
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Required Area (Corrected)</div>
-                <div className="text-sm font-mono font-bold text-blue-700 mt-1">
+                <div className="text-sm font-mono font-bold text-blue-700 mt-1 tabular-nums">
                   {result.requiredAreaMm2 !== null
                     ? `${mm2ToArea(result.requiredAreaMm2, u.area).toFixed(3)} ${u.area}`
                     : 'Blocked / Outside Method'}
                 </div>
                 {result.requiredAreaMm2 !== null && (
-                  <div className="text-[11px] font-mono text-slate-500">
+                  <div className="text-[11px] font-mono text-slate-500 tabular-nums">
                     {result.requiredAreaMm2.toFixed(2)} mm² ·{' '}
                     {result.requiredAreaIn2?.toFixed(4)} in²
                   </div>
@@ -575,15 +578,37 @@ export const LiquidSizingTab: React.FC<LiquidSizingTabProps> = ({
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Selected API 526 Orifice</div>
-                <div className="text-sm font-mono font-bold text-slate-900 mt-1">
+                <div className="text-sm font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {result.orificeSelection?.selectedOrifice
                     ? `Orifice ${result.orificeSelection.selectedOrifice.designation} (${result.orificeSelection.selectedOrifice.effectiveAreaMm2.toFixed(1)} mm²)`
                     : 'None'}
                 </div>
+                <div className="text-[11px] font-mono text-slate-500 tabular-nums">
+                  Margin:{' '}
+                  {result.orificeSelection?.areaMarginPercent !== null &&
+                  result.orificeSelection?.areaMarginPercent !== undefined
+                    ? `${result.orificeSelection.areaMarginPercent.toFixed(1)}%`
+                    : '—'}
+                </div>
+              </div>
+              <div className="p-3 rounded bg-blue-50 border border-blue-200">
+                <div className="text-blue-900 font-medium">
+                  PSV Inlet × Outlet Nozzles
+                </div>
+                <div className="text-sm font-mono font-bold text-blue-800 mt-1 tabular-nums">
+                  {result.orificeSelection?.nozzleSizeLabel ?? '—'}
+                </div>
+                {result.orificeSelection?.inletNozzleSizeIn &&
+                  result.orificeSelection?.outletNozzleSizeIn && (
+                    <div className="text-[11px] font-mono text-slate-600 tabular-nums">
+                      Inlet {result.orificeSelection.inletNozzleSizeIn} · Outlet{' '}
+                      {result.orificeSelection.outletNozzleSizeIn} (API 526)
+                    </div>
+                  )}
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Orifice Volumetric Capacity</div>
-                <div className="text-sm font-mono font-bold text-emerald-700 mt-1">
+                <div className="text-sm font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {result.selectedOrificeCapacityM3H !== null
                     ? `${m3HToVolFlow(
                         result.selectedOrificeCapacityM3H,
@@ -591,17 +616,49 @@ export const LiquidSizingTab: React.FC<LiquidSizingTabProps> = ({
                       ).toFixed(2)} ${u.liquidVolFlow}`
                     : '—'}
                 </div>
+                {result.selectedOrificeCapacityKgH !== null && (
+                  <div className="text-[11px] font-mono text-slate-500 tabular-nums">
+                    {kgHToMassFlow(
+                      result.selectedOrificeCapacityKgH,
+                      u.massFlow
+                    ).toFixed(1)}{' '}
+                    {u.massFlow}
+                  </div>
+                )}
+              </div>
+              <div className="p-3 rounded bg-emerald-50/70 border border-emerald-200">
+                <div className="text-emerald-900 font-medium">
+                  Rated Cap. @ 10% OP (Line Sizing)
+                </div>
+                <div className="text-sm font-mono font-bold text-emerald-800 mt-1 tabular-nums">
+                  {result.ratedCapacityAt10PercentM3H !== null
+                    ? `${m3HToVolFlow(
+                        result.ratedCapacityAt10PercentM3H,
+                        u.liquidVolFlow
+                      ).toFixed(2)} ${u.liquidVolFlow}`
+                    : '—'}
+                </div>
+                {result.ratedCapacityAt10PercentKgH !== null && (
+                  <div className="text-[11px] font-mono text-slate-600 tabular-nums">
+                    {kgHToMassFlow(
+                      result.ratedCapacityAt10PercentKgH,
+                      u.massFlow
+                    ).toFixed(1)}{' '}
+                    {u.massFlow} · P1,10% ={' '}
+                    {result.ratedPressure10PctKpaA?.toFixed(1)} kPa(a)
+                  </div>
+                )}
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Governing ΔP & SG</div>
-                <div className="text-sm font-mono text-slate-900 mt-1">
+                <div className="text-sm font-mono text-slate-900 mt-1 tabular-nums">
                   ΔP = {result.differentialPressureKpa.toFixed(1)} kPa · SG ={' '}
                   {result.specificGravity.toFixed(4)}
                 </div>
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Applied Factors</div>
-                <div className="text-sm font-mono text-slate-900 mt-1">
+                <div className="text-sm font-mono text-slate-900 mt-1 tabular-nums">
                   Kd={l.kd} · Kw={l.kw} · Kc={l.kc} · Kv={result.kvFinal?.toFixed(4) ?? '—'}
                 </div>
               </div>

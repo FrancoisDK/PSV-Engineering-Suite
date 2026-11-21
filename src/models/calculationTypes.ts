@@ -213,6 +213,8 @@ export interface LiquidPSVInput {
   vapourPressureKpaA: number;
   relievingTemperatureK: number;
   upstreamPressureKpaG: number;
+  setPressureKpaG?: number;
+  overpressurePercent?: number;
   totalBackpressureKpaG: number;
   atmosphericPressureKpaA: number;
   kd: number;
@@ -359,6 +361,9 @@ export interface OrificeSelectionResult {
   recommendedOrifice: ApiOrificeDefinition | null;
   nextLargerOrifice: ApiOrificeDefinition | null;
   selectedOrifice: ApiOrificeDefinition | null;
+  inletNozzleSizeIn: string | null;
+  outletNozzleSizeIn: string | null;
+  nozzleSizeLabel: string | null;
   isOverride: boolean;
   overrideNote: string;
   exceedsLargestStandard: boolean;
@@ -411,6 +416,9 @@ export interface GasSizingResult {
   requiredAreaIn2: number | null;
   orificeSelection: OrificeSelectionResult | null;
   selectedOrificeCapacityKgH: number | null;
+  ratedPressure10PctKpaA: number | null;
+  ratedCapacityAt10PercentKgH: number | null;
+  ratedFlowRegime10Pct: 'CRITICAL' | 'SUBCRITICAL' | 'INVALID' | null;
   governingDifferentialKpa: number;
   trace: CalculationTrace;
 }
@@ -444,6 +452,10 @@ export interface LiquidSizingResult {
   requiredAreaIn2: number | null;
   orificeSelection: OrificeSelectionResult | null;
   selectedOrificeCapacityM3H: number | null;
+  selectedOrificeCapacityKgH: number | null;
+  ratedPressure10PctKpaA: number | null;
+  ratedCapacityAt10PercentM3H: number | null;
+  ratedCapacityAt10PercentKgH: number | null;
   trace: CalculationTrace;
 }
 
@@ -529,6 +541,8 @@ export interface ReliefScenario {
   relievingMassFlowKgH: number;
   requiredAreaMm2: number | null;
   selectedOrificeDesignation: string | null;
+  inletOutletNozzle?: string | null;
+  ratedCapacity10PctKgH?: number | null;
   capacityMarginPercent: number | null;
   status: CalculationStatus;
   notes: string;

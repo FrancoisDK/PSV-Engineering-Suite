@@ -154,6 +154,8 @@ export const DEMONSTRATION_CASES: DemoCaseDescriptor[] = [
         vapourPressureKpaA: 1.5,
         relievingTemperatureK: 313.15,
         upstreamPressureKpaG: 1320,
+        setPressureKpaG: 1200,
+        overpressurePercent: 10,
         totalBackpressureKpaG: 60,
         atmosphericPressureKpaA: 101.325,
         kd: 0.65,

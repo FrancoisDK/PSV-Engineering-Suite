@@ -58,6 +58,15 @@ export const CalculationReportTab: React.FC<CalculationReportTabProps> = ({
   const u = document.unitPreferences;
   const atm = db.atmosphericPressureKpaA;
 
+  const activeSizing =
+    governingScenario?.linkedModule === 'liquid'
+      ? liquidResult
+      : governingScenario?.linkedModule === 'breakthrough'
+        ? breakthroughResult.psvSizing
+        : governingScenario?.linkedModule === 'fire'
+          ? fireResult.psvSizing
+          : gasResult;
+
   const activeTrace =
     governingScenario?.linkedModule === 'liquid'
       ? liquidResult.trace
@@ -66,6 +75,15 @@ export const CalculationReportTab: React.FC<CalculationReportTabProps> = ({
         : governingScenario?.linkedModule === 'fire'
           ? fireResult.trace
           : gasResult.trace;
+
+  const governingNozzleLabel =
+    governingScenario?.inletOutletNozzle ??
+    activeSizing?.orificeSelection?.nozzleSizeLabel ??
+    '—';
+  const governingRatedCap10PctKgH =
+    governingScenario?.ratedCapacity10PctKgH ??
+    activeSizing?.ratedCapacityAt10PercentKgH ??
+    null;
 
   const activeMessages = [
     ...gasResult.messages,
@@ -295,9 +313,9 @@ export const CalculationReportTab: React.FC<CalculationReportTabProps> = ({
         {/* 13. API Orifice Selection & 14. Capacity Margin */}
         <section className="print-break-inside-avoid space-y-2">
           <h2 className="text-xs font-bold text-slate-900 border-b border-slate-200 pb-1">
-            13–14. API 526 Orifice Selection & Capacity Margin
+            13–14. API 526 Orifice Selection, Nozzle Sizes & Line-Sizing Rated Capacity
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 rounded border border-slate-200 bg-slate-50 font-mono">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-3 rounded border border-slate-200 bg-slate-50 font-mono">
             <div>
               <span className="text-slate-500 font-sans block">Governing Scenario</span>
               <span className="font-sans font-semibold">
@@ -309,23 +327,40 @@ export const CalculationReportTab: React.FC<CalculationReportTabProps> = ({
               {governingScenario?.requiredAreaMm2 !== null &&
               governingScenario?.requiredAreaMm2 !== undefined
                 ? `${mm2ToArea(governingScenario.requiredAreaMm2, u.area).toFixed(2)} ${u.area}`
-                : `${gasResult.requiredAreaMm2?.toFixed(2) ?? '—'} mm²`}
+                : `${activeSizing?.requiredAreaMm2?.toFixed(2) ?? '—'} mm²`}
             </div>
             <div>
               <span className="text-slate-500 font-sans block">Selected Orifice</span>
               {governingScenario?.selectedOrificeDesignation ??
-                gasResult.orificeSelection?.selectedOrifice?.designation ??
+                activeSizing?.orificeSelection?.selectedOrifice?.designation ??
                 '—'}
+            </div>
+            <div>
+              <span className="text-slate-500 font-sans block">Inlet × Outlet Nozzles</span>
+              {governingNozzleLabel}
+            </div>
+            <div>
+              <span className="text-slate-500 font-sans block">
+                Rated Cap. @ 10% OP
+              </span>
+              {governingRatedCap10PctKgH !== null
+                ? `${kgHToMassFlow(governingRatedCap10PctKgH, u.massFlow).toFixed(1)} ${u.massFlow}`
+                : '—'}
             </div>
             <div>
               <span className="text-slate-500 font-sans block">Capacity Margin</span>
               {governingScenario?.capacityMarginPercent !== null &&
               governingScenario?.capacityMarginPercent !== undefined
                 ? `${governingScenario.capacityMarginPercent.toFixed(1)}%`
-                : '—'}
+                : activeSizing?.orificeSelection?.areaMarginPercent !== null &&
+                    activeSizing?.orificeSelection?.areaMarginPercent !== undefined
+                  ? `${activeSizing.orificeSelection.areaMarginPercent.toFixed(1)}%`
+                  : '—'}
             </div>
           </div>
-          <p className="text-[11px] text-slate-600">{VALVE_SELECTION_NOTICE}</p>
+          <p className="text-[11px] text-slate-600">
+            {VALVE_SELECTION_NOTICE} Rated capacity at 10% overpressure is evaluated for the selected API 526 orifice at 1.10 × P_set + P_atm as the API 520 Part II inlet/outlet line-sizing basis.
+          </p>
         </section>
 
         {/* 15. Warnings and Limitations */}
@@ -368,13 +403,15 @@ export const CalculationReportTab: React.FC<CalculationReportTabProps> = ({
                 <th className="py-1.5 px-2.5 text-right">Flow ({u.massFlow})</th>
                 <th className="py-1.5 px-2.5 text-right">Req. Area ({u.area})</th>
                 <th className="py-1.5 px-2.5">Orifice</th>
+                <th className="py-1.5 px-2.5">Inlet × Outlet</th>
+                <th className="py-1.5 px-2.5 text-right">Rated 10% OP ({u.massFlow})</th>
                 <th className="py-1.5 px-2.5">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {evaluatedScenarios.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-3 px-2.5 text-slate-500 text-center">
+                  <td colSpan={8} className="py-3 px-2.5 text-slate-500 text-center">
                     No scenarios saved in comparison table.
                   </td>
                 </tr>
@@ -393,6 +430,15 @@ export const CalculationReportTab: React.FC<CalculationReportTabProps> = ({
                     </td>
                     <td className="py-1.5 px-2.5 font-mono">
                       {sc.selectedOrificeDesignation ?? '—'}
+                    </td>
+                    <td className="py-1.5 px-2.5 font-mono">
+                      {sc.inletOutletNozzle ?? '—'}
+                    </td>
+                    <td className="py-1.5 px-2.5 text-right font-mono">
+                      {sc.ratedCapacity10PctKgH !== null &&
+                      sc.ratedCapacity10PctKgH !== undefined
+                        ? kgHToMassFlow(sc.ratedCapacity10PctKgH, u.massFlow).toFixed(1)
+                        : '—'}
                     </td>
                     <td className="py-1.5 px-2.5">
                       <StatusBadge status={sc.status} compact />

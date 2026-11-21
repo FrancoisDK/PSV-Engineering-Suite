@@ -60,6 +60,11 @@ describe('Fire Case Wetted Area, Heat Input & Vapour Generation', () => {
       1
     );
     expect(res.psvSizing?.requiredAreaMm2).toBeGreaterThan(0);
+    expect(res.psvSizing?.orificeSelection?.nozzleSizeLabel).toContain('×');
+    expect(res.psvSizing?.ratedCapacityAt10PercentKgH!).toBeGreaterThan(0);
+    expect(res.psvSizing?.ratedCapacityAt10PercentKgH!).toBeLessThan(
+      res.psvSizing?.selectedOrificeCapacityKgH!
+    );
   });
 
   it('blocks unverified insulation credit as OUTSIDE_IMPLEMENTED_METHOD', () => {

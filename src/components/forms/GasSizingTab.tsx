@@ -535,26 +535,26 @@ export const GasSizingTab: React.FC<GasSizingTabProps> = ({
             <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-2">
               Gas / Vapour PSV Sizing Results
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Required Relieving Rate</div>
-                <div className="text-sm font-mono font-bold text-slate-900 mt-1">
+                <div className="text-sm font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {kgHToMassFlow(result.requiredMassFlowKgH, u.massFlow).toFixed(2)}{' '}
                   {u.massFlow}
                 </div>
-                <div className="text-[11px] font-mono text-slate-500">
+                <div className="text-[11px] font-mono text-slate-500 tabular-nums">
                   {result.requiredMassFlowKgH.toFixed(2)} kg/h
                 </div>
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Required Effective Area</div>
-                <div className="text-sm font-mono font-bold text-blue-700 mt-1">
+                <div className="text-sm font-mono font-bold text-blue-700 mt-1 tabular-nums">
                   {result.requiredAreaMm2 !== null
                     ? `${mm2ToArea(result.requiredAreaMm2, u.area).toFixed(3)} ${u.area}`
                     : '—'}
                 </div>
                 {result.requiredAreaMm2 !== null && (
-                  <div className="text-[11px] font-mono text-slate-500">
+                  <div className="text-[11px] font-mono text-slate-500 tabular-nums">
                     {result.requiredAreaMm2.toFixed(2)} mm² ·{' '}
                     {result.requiredAreaCm2?.toFixed(3)} cm² ·{' '}
                     {result.requiredAreaIn2?.toFixed(4)} in²
@@ -563,12 +563,12 @@ export const GasSizingTab: React.FC<GasSizingTabProps> = ({
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Selected API 526 Orifice</div>
-                <div className="text-sm font-mono font-bold text-slate-900 mt-1">
+                <div className="text-sm font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {result.orificeSelection?.selectedOrifice
                     ? `Orifice ${result.orificeSelection.selectedOrifice.designation} (${result.orificeSelection.selectedOrifice.effectiveAreaMm2.toFixed(1)} mm²)`
                     : 'None / Exceeds Standard'}
                 </div>
-                <div className="text-[11px] font-mono text-slate-500">
+                <div className="text-[11px] font-mono text-slate-500 tabular-nums">
                   Margin:{' '}
                   {result.orificeSelection?.areaMarginPercent !== null &&
                   result.orificeSelection?.areaMarginPercent !== undefined
@@ -581,9 +581,26 @@ export const GasSizingTab: React.FC<GasSizingTabProps> = ({
                     : '—'}
                 </div>
               </div>
+              <div className="p-3 rounded bg-blue-50 border border-blue-200">
+                <div className="text-blue-900 font-medium">
+                  PSV Inlet × Outlet Nozzles
+                </div>
+                <div className="text-sm font-mono font-bold text-blue-800 mt-1 tabular-nums">
+                  {result.orificeSelection?.nozzleSizeLabel ?? '—'}
+                </div>
+                {result.orificeSelection?.inletNozzleSizeIn &&
+                  result.orificeSelection?.outletNozzleSizeIn && (
+                    <div className="text-[11px] font-mono text-slate-600 tabular-nums">
+                      Inlet {result.orificeSelection.inletNozzleSizeIn} · Outlet{' '}
+                      {result.orificeSelection.outletNozzleSizeIn} (API 526)
+                    </div>
+                  )}
+              </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
-                <div className="text-slate-500">Calculated Orifice Capacity</div>
-                <div className="text-sm font-mono font-bold text-emerald-700 mt-1">
+                <div className="text-slate-500">
+                  Orifice Capacity ({g.overpressurePercent}% OP)
+                </div>
+                <div className="text-sm font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {result.selectedOrificeCapacityKgH !== null
                     ? `${kgHToMassFlow(
                         result.selectedOrificeCapacityKgH,
@@ -591,16 +608,40 @@ export const GasSizingTab: React.FC<GasSizingTabProps> = ({
                       ).toFixed(1)} ${u.massFlow}`
                     : '—'}
                 </div>
+                {result.selectedOrificeCapacityKgH !== null && (
+                  <div className="text-[11px] font-mono text-slate-500 tabular-nums">
+                    {result.selectedOrificeCapacityKgH.toFixed(1)} kg/h
+                  </div>
+                )}
+              </div>
+              <div className="p-3 rounded bg-emerald-50/70 border border-emerald-200">
+                <div className="text-emerald-900 font-medium">
+                  Rated Cap. @ 10% OP (Line Sizing)
+                </div>
+                <div className="text-sm font-mono font-bold text-emerald-800 mt-1 tabular-nums">
+                  {result.ratedCapacityAt10PercentKgH !== null
+                    ? `${kgHToMassFlow(
+                        result.ratedCapacityAt10PercentKgH,
+                        u.massFlow
+                      ).toFixed(1)} ${u.massFlow}`
+                    : '—'}
+                </div>
+                {result.ratedCapacityAt10PercentKgH !== null && (
+                  <div className="text-[11px] font-mono text-slate-600 tabular-nums">
+                    {result.ratedCapacityAt10PercentKgH.toFixed(1)} kg/h · P1,10% ={' '}
+                    {result.ratedPressure10PctKpaA?.toFixed(1)} kPa(a)
+                  </div>
+                )}
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Governing Pressure Differential</div>
-                <div className="text-sm font-mono font-bold text-slate-900 mt-1">
+                <div className="text-sm font-mono font-bold text-slate-900 mt-1 tabular-nums">
                   {result.governingDifferentialKpa.toFixed(2)} kPa
                 </div>
               </div>
               <div className="p-3 rounded bg-slate-50 border border-slate-200">
                 <div className="text-slate-500">Applied Correction Factors</div>
-                <div className="text-sm font-mono text-slate-900 mt-1">
+                <div className="text-sm font-mono text-slate-900 mt-1 tabular-nums">
                   Kd={g.kd} · Kb={g.kb} · Kc={g.kc}
                 </div>
               </div>

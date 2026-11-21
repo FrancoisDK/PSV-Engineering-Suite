@@ -4,6 +4,7 @@ import {
   kelvinToTemp,
   kgHToMassFlow,
   kpaAbsToPressure,
+  m3HToVolFlow,
   mm2ToArea,
 } from '../../calculations/unitConversions';
 import {
@@ -30,6 +31,9 @@ export interface ActiveResultsSummary {
   orificeSelection: OrificeSelectionResult | null;
   status: CalculationStatus;
   flowRegimeLabel?: string;
+  ratedPressure10PctKpaA?: number | null;
+  ratedCapacityAt10PercentKgH?: number | null;
+  ratedCapacityAt10PercentM3H?: number | null;
 }
 
 interface StickyResultsCardProps {
@@ -60,6 +64,9 @@ export const StickyResultsCard: React.FC<StickyResultsCardProps> = ({
     orificeSelection,
     status,
     flowRegimeLabel,
+    ratedPressure10PctKpaA,
+    ratedCapacityAt10PercentKgH,
+    ratedCapacityAt10PercentM3H,
   } = summary;
 
   const selOrifice = orificeSelection?.selectedOrifice ?? null;
@@ -154,11 +161,53 @@ export const StickyResultsCard: React.FC<StickyResultsCardProps> = ({
               {selOrifice ? `Orifice ${selOrifice.designation}` : '—'}
             </span>
 
+            <span className="text-slate-500">Inlet × Outlet Nozzles</span>
+            <span className="font-mono font-bold text-slate-900 text-right tabular-nums">
+              {orificeSelection?.nozzleSizeLabel ?? '—'}
+            </span>
+
             <span className="text-slate-500">Selected Eff. Area</span>
             <span className="font-mono tabular-nums font-medium text-slate-900 text-right">
               {selOrifice
                 ? `${mm2ToArea(selOrifice.effectiveAreaMm2, unitPrefs.area).toFixed(2)} ${unitPrefs.area.replace('2', '²')}`
                 : '—'}
+            </span>
+
+            <span className="text-slate-500">
+              Rated Cap. (10% OP)
+              <span className="block text-[10px] text-slate-400">
+                Line sizing basis
+              </span>
+            </span>
+            <span className="font-mono tabular-nums font-semibold text-emerald-700 text-right">
+              {ratedCapacityAt10PercentKgH !== null &&
+              ratedCapacityAt10PercentKgH !== undefined ? (
+                <>
+                  {kgHToMassFlow(
+                    ratedCapacityAt10PercentKgH,
+                    unitPrefs.massFlow
+                  ).toFixed(1)}{' '}
+                  {unitPrefs.massFlow}
+                  {ratedCapacityAt10PercentM3H !== null &&
+                    ratedCapacityAt10PercentM3H !== undefined && (
+                      <span className="block text-[10px] font-normal text-slate-500">
+                        {m3HToVolFlow(
+                          ratedCapacityAt10PercentM3H,
+                          unitPrefs.liquidVolFlow
+                        ).toFixed(2)}{' '}
+                        {unitPrefs.liquidVolFlow}
+                      </span>
+                    )}
+                  {ratedPressure10PctKpaA !== null &&
+                    ratedPressure10PctKpaA !== undefined && (
+                      <span className="block text-[10px] font-normal text-slate-400">
+                        @ {ratedPressure10PctKpaA.toFixed(1)} kPa(a)
+                      </span>
+                    )}
+                </>
+              ) : (
+                '—'
+              )}
             </span>
 
             <span className="text-slate-500">Capacity Margin</span>
