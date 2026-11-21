@@ -41,53 +41,93 @@ export function escapeJsonForHtmlScript(data: unknown): string {
 
 /**
  * Detects whether the current runtime is executing from a self-contained single-file
- * production bundle (no external module script src="/src/main.tsx") vs Vite dev mode.
+ * production bundle (no Vite dev entry script) vs Vite dev mode.
  */
 export function isRunningInStandaloneOrProductionBundle(): boolean {
   if (typeof document === 'undefined') return false;
   const externalScripts = Array.from(document.querySelectorAll('script[src]'));
   const hasDevSrc = externalScripts.some((s) => {
     const src = s.getAttribute('src') || '';
-    return src.includes('/src/main') || src.includes('@vite/client');
+    return (
+      src.includes('/src/main') ||
+      src.includes('@vite/client') ||
+      src.includes('/@react-refresh')
+    );
   });
-  return !hasDevSrc && externalScripts.length === 0;
+  if (hasDevSrc) return false;
+  return Boolean(document.querySelector('#psv-project-data-script'));
+}
+
+/**
+ * Validates that an HTML string is a compiled self-contained bundle rather than
+ * Vite's unbundled dev index.html. Checks HTML script elements outside inline JS text.
+ */
+export function isValidBundledTemplateHtml(htmlText: string): boolean {
+  if (!htmlText.includes('id="root"')) return false;
+
+  if (typeof DOMParser !== 'undefined') {
+    const parsed = new DOMParser().parseFromString(htmlText, 'text/html');
+    const hasRoot = Boolean(parsed.querySelector('#root'));
+    const hasDevScript = Array.from(parsed.querySelectorAll('script[src]')).some(
+      (s) => {
+        const src = s.getAttribute('src') || '';
+        return (
+          src.includes('/src/main') ||
+          src.includes('@vite/client') ||
+          src.includes('/@react-refresh')
+        );
+      }
+    );
+    const hasInlineModuleScript = Array.from(
+      parsed.querySelectorAll('script[type="module"]:not([src])')
+    ).some((s) => (s.textContent || '').trim().length > 0);
+    return hasRoot && !hasDevScript && hasInlineModuleScript;
+  }
+
+  // Fallback for non-DOM environments: inspect only <body> markup outside <head> bundle
+  const bodyIdx = htmlText.lastIndexOf('<body');
+  const bodyHtml = bodyIdx >= 0 ? htmlText.slice(bodyIdx) : htmlText;
+  return bodyHtml.includes('id="root"') && !bodyHtml.includes('main.tsx');
 }
 
 /**
  * Obtains a clean self-contained production HTML template:
- * 1) In Vite dev mode, fetches /__standalone_template__.html served from dist/PSV_Engineering_Suite.html.
+ * 1) In Vite dev mode, fetches /__standalone_template__.html (built automatically on-demand by Vite middleware).
  * 2) When running inside the single-file production/standalone HTML itself (including file://),
- *    clones the clean document shell (clearing #root and resetting embedded project script).
+ *    fetches the clean production bundle over HTTP(S) or clones the clean document shell.
  */
 async function obtainBundledApplicationTemplate(): Promise<string> {
   const isDev = !isRunningInStandaloneOrProductionBundle();
 
   if (isDev) {
     const resp = await fetch('/__standalone_template__.html', { cache: 'no-store' });
+    const text = await resp.text();
     if (!resp.ok) {
       throw new Error(
-        'Production single-file template is not available in dev server. Run "npm run build" first to generate dist/PSV_Engineering_Suite.html.'
+        text.trim() ||
+          'Failed to obtain single-file standalone HTML template from dev server.'
       );
     }
-    const text = await resp.text();
-    if (!text.includes('id="root"') || text.includes('src="/src/main.tsx"')) {
+    if (!isValidBundledTemplateHtml(text)) {
       throw new Error('Fetched template is not a valid bundled standalone HTML artifact.');
     }
     return text;
   }
 
-  // If served over http/https (e.g. production preview), try fetching clean index HTML first
+  // If served over http/https (e.g. production preview), try fetching clean index HTML or PSV_Engineering_Suite.html
   if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-    try {
-      const resp = await fetch(window.location.href, { cache: 'no-store' });
-      if (resp.ok) {
-        const htmlText = await resp.text();
-        if (htmlText.includes('id="root"') && !htmlText.includes('src="/src/main.tsx"')) {
-          return htmlText;
+    for (const candidateUrl of [window.location.href, '/PSV_Engineering_Suite.html']) {
+      try {
+        const resp = await fetch(candidateUrl, { cache: 'no-store' });
+        if (resp.ok) {
+          const htmlText = await resp.text();
+          if (isValidBundledTemplateHtml(htmlText)) {
+            return htmlText;
+          }
         }
+      } catch {
+        // Fall through to next candidate or DOM clone
       }
-    } catch {
-      // Fall back to clean single-file DOM clone below
     }
   }
 
@@ -162,18 +202,29 @@ export function injectProjectDataIntoHtmlTemplate(
   payload: EmbeddedStandalonePayload | null
 ): string {
   const escaped = payload ? escapeJsonForHtmlScript(payload) : 'null';
-  const replacementScript = `<script id="psv-project-data-script">window.__PSV_PROJECT_DATA__ = ${escaped};</script>`;
+  const scriptOpen = '<' + 'script id="psv-project-data-script">';
+  const scriptClose = '</' + 'script>';
+  const replacementScript = `${scriptOpen}window.__PSV_PROJECT_DATA__ = ${escaped};${scriptClose}`;
 
   const scriptRegex =
-    /<script\b[^>]*id=["']psv-project-data-script["'][^>]*>[\s\S]*?<\/script>/i;
+    /<script\b[^>]*id=["']psv-project-data-script["'][^>]*>[\s\S]*?<\/script>/gi;
 
-  if (scriptRegex.test(templateHtml)) {
-    return templateHtml.replace(scriptRegex, () => replacementScript);
+  const matches = Array.from(templateHtml.matchAll(scriptRegex));
+  if (matches.length > 0) {
+    const target = matches[matches.length - 1];
+    const start = target.index ?? -1;
+    if (start >= 0) {
+      return (
+        templateHtml.slice(0, start) +
+        replacementScript +
+        templateHtml.slice(start + target[0].length)
+      );
+    }
   }
 
-  // Fallback injection before </head> or </body>
+  // Fallback injection before </body>
   if (templateHtml.includes('</body>')) {
-    return templateHtml.replace('</body>', `${replacementScript}\n</body>`);
+    return templateHtml.replace('</body>', () => `${replacementScript}\n</body>`);
   }
   return `${templateHtml}\n${replacementScript}`;
 }

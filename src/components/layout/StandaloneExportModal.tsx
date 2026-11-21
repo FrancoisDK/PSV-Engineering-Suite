@@ -265,7 +265,7 @@ export const StandaloneExportModal: React.FC<StandaloneExportModalProps> = ({
             >
               <Download className="w-3.5 h-3.5" />
               <span>
-                {generating ? 'Bundling...' : 'Generate Standalone HTML'}
+                {generating ? 'Bundling Standalone HTML...' : 'Generate Standalone HTML'}
               </span>
             </button>
           </div>

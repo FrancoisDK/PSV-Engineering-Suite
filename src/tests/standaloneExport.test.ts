@@ -5,6 +5,7 @@ import {
   escapeJsonForHtmlScript,
   getStandaloneExportFilename,
   injectProjectDataIntoHtmlTemplate,
+  isValidBundledTemplateHtml,
   StandaloneExportOptions,
 } from '../export/standaloneHtmlExporter';
 
@@ -29,20 +30,32 @@ describe('Standalone Offline HTML Exporter', () => {
     expect(escaped).toContain('\\u003c/script\\u003e');
   });
 
-  it('injects populated project document cleanly into bundled HTML template', () => {
+  it('injects populated project document into body script without corrupting bundled head module script', () => {
     const doc = createBlankProjectDocument();
     doc.fireInput.includePipingAllowance = true;
     doc.fireInput.pipingAllowancePercent = 10;
 
     const payload = buildEmbeddedPayload(doc, SAMPLE_OPTIONS);
-    const template =
-      '<!doctype html><html><body><div id="root"></div><script id="psv-project-data-script">window.__PSV_PROJECT_DATA__ = null;</script></body></html>';
+    const fakeBundleSnippet =
+      'const s="<script id=\\"psv-project-data-script\\">x</script>";';
+    const template = `<!doctype html><html><head><script type="module">${fakeBundleSnippet}</script></head><body><div id="root"></div><script id="psv-project-data-script">window.__PSV_PROJECT_DATA__ = null;</script></body></html>`;
 
     const out = injectProjectDataIntoHtmlTemplate(template, payload);
-    expect(out).toContain('Fire &amp; PSV Study'.replace('&amp;', '\\u0026'));
+    expect(out).toContain(fakeBundleSnippet);
+    expect(out).toContain('Fire \\u0026 PSV Study');
     expect(out).toContain('V-401');
     expect(out).toContain('PSV-401');
     expect(out).not.toContain('window.__PSV_PROJECT_DATA__ = null;');
+  });
+
+  it('validates bundled HTML templates structurally even when inline JS mentions dev paths', () => {
+    const bundledWithMention =
+      '<!doctype html><html><head><script type="module">const note="src=\\"/src/main.tsx\\"";</script></head><body><div id="root"></div><script id="psv-project-data-script">window.__PSV_PROJECT_DATA__ = null;</script></body></html>';
+    expect(isValidBundledTemplateHtml(bundledWithMention)).toBe(true);
+
+    const devIndexHtml =
+      '<!doctype html><html><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>';
+    expect(isValidBundledTemplateHtml(devIndexHtml)).toBe(false);
   });
 
   it('builds deterministic filenames for blank vs populated standalone exports', () => {
