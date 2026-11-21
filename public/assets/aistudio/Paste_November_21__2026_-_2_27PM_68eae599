@@ -1,0 +1,1702 @@
+# Build a Professional PSV Sizing Web Application
+
+Create a complete, working, professional engineering web application called:
+
+**PSV Engineering Suite**
+
+The application shall calculate pressure safety valve sizing for:
+
+1. Gas and vapour service
+2. Liquid service
+3. Vapour breakthrough or gas blow-by
+4. External fire case
+5. Comparison of multiple relief scenarios
+6. Selection of a standard API 526 effective orifice
+
+The app is intended for process and mechanical engineers performing preliminary pressure-relief calculations.
+
+This is an engineering application, not a simple visual mockup. All calculation controls, validation, unit conversion, scenario logic, results, warnings, and reports must work.
+
+---
+
+# 1. Technology Stack
+
+Build the application using:
+
+- React
+- TypeScript
+- Vite
+- HTML5 and CSS
+- Tailwind CSS
+- Lucide React icons
+- Recharts for engineering charts
+- React Hook Form
+- Zod for input validation
+- Vitest for calculation-engine tests
+
+Use a modular multi-file project structure.
+
+Do not place all logic in one component.
+
+Suggested structure:
+
+src/
+  components/
+    layout/
+    forms/
+    results/
+    charts/
+    common/
+  calculations/
+    gasSizing.ts
+    liquidSizing.ts
+    fireCase.ts
+    vapourBreakthrough.ts
+    orificeSelection.ts
+    unitConversions.ts
+    validation.ts
+  constants/
+    apiOrifices.ts
+    unitDefinitions.ts
+    defaultFactors.ts
+  models/
+    calculationTypes.ts
+  pages/
+    PSVCalculator.tsx
+    ProjectSummary.tsx
+  tests/
+    gasSizing.test.ts
+    liquidSizing.test.ts
+    fireCase.test.ts
+    vapourBreakthrough.test.ts
+    unitConversions.test.ts
+  App.tsx
+  main.tsx
+
+Separate:
+
+- User interface
+- Engineering equations
+- Unit conversions
+- Data models
+- Validation rules
+- Reporting logic
+
+All calculation functions must be pure TypeScript functions wherever practical.
+
+Do not require Gemini or another AI model to perform calculations. The calculations must execute deterministically in TypeScript.
+
+---
+
+# 2. Standards Basis and Engineering Limitations
+
+Structure the application around the following references:
+
+- API Standard 520 Part I: sizing and selection of pressure-relieving devices
+- API Standard 520 Part II: installation considerations
+- API Standard 521: overpressure scenario identification, relieving load determination, fire exposure, and depressuring considerations
+- API Standard 526: standard flanged steel pressure-relief-valve effective orifice designations
+- ASME BPVC Section VIII where applicable to allowable overpressure and accumulation
+
+Important requirements:
+
+1. Do not claim that the software is API-certified or ASME-certified.
+2. Display the edition and revision basis used by the application.
+3. Put standard-dependent constants, coefficients, equations, and lookup data in clearly named configuration modules.
+4. Add comments stating that values must be verified against the user’s licensed copies of the applicable standards.
+5. Do not invent clauses, equation numbers, tables, constants, or acceptance limits.
+6. Where an exact standard-dependent value has not been supplied, expose it as a user input or configurable default.
+7. Clearly distinguish:
+   - User input
+   - Calculated value
+   - Assumed value
+   - Standard lookup value
+8. Display this notice:
+
+   “This application is an engineering calculation aid. It does not replace a qualified engineer’s review, a certified valve manufacturer’s sizing program, or the applicable governing codes and standards.”
+
+The app must prevent users from treating preliminary calculations as certified valve capacity.
+
+---
+
+# 3. Main User Interface
+
+Create a modern desktop-first engineering interface.
+
+Use:
+
+- Dark navy header
+- White or very light grey work area
+- Blue accent colour
+- Amber warnings
+- Red errors
+- Green passing checks
+- Compact process-engineering form controls
+- Clear section borders
+- Sticky results panel on wide screens
+- Responsive layout for tablets and smaller screens
+
+The top header shall contain:
+
+- PSV Engineering Suite
+- Project name
+- Equipment tag
+- Calculation number
+- Revision
+- Engineer
+- Date
+- Unit-system selector
+- Save Project button
+- Load Project button
+- Export Report button
+- Reset button
+
+Implement local project saving using localStorage.
+
+Support JSON project export and import.
+
+---
+
+# 4. Main Tab Structure
+
+Create the following primary tabs:
+
+1. Design Basis
+2. Gas / Vapour PSV
+3. Liquid PSV
+4. Vapour Breakthrough
+5. Fire Case
+6. Scenario Comparison
+7. Final PSV Selection
+8. Calculation Report
+
+Each primary calculation tab shall contain secondary tabbed sections.
+
+---
+
+# 5. Design Basis Tab
+
+Create these sections:
+
+## 5.1 Project Information
+
+Inputs:
+
+- Project name
+- Client
+- Plant or facility
+- Unit
+- Equipment tag
+- Equipment description
+- PSV tag
+- Calculation number
+- Revision
+- Prepared by
+- Checked by
+- Calculation date
+- Notes
+
+## 5.2 Protected Equipment
+
+Allow selection of:
+
+- Pressure vessel
+- Separator
+- Knockout drum
+- Heat exchanger shell
+- Heat exchanger tube side
+- Column
+- Reactor
+- Compressor system
+- Pump discharge system
+- Pipeline
+- Other
+
+Inputs:
+
+- MAWP
+- Design pressure
+- Design temperature
+- Normal operating pressure
+- Normal operating temperature
+- Vessel orientation
+- Vessel diameter
+- Tangent-to-tangent length
+- Liquid level
+- Insulation status
+- Fireproofing status
+- Equipment elevation
+
+## 5.3 PSV Design Conditions
+
+Inputs:
+
+- Set pressure
+- Overpressure percentage
+- Accumulation percentage
+- Relieving pressure
+- Superimposed backpressure
+- Built-up backpressure
+- Total backpressure
+- Relieving temperature
+- Atmospheric pressure
+- Valve type
+- Conventional spring loaded
+- Balanced bellows
+- Pilot operated
+- Rupture disk upstream of PSV
+- Multiple PSV installation
+- Discharge destination
+- Atmosphere
+- Closed vent
+- Flare header
+- Scrubber
+- Other
+
+Calculate relieving pressure consistently using absolute pressure internally.
+
+Show gauge pressure and absolute pressure clearly.
+
+Never mix gauge and absolute pressure in compressible-flow equations.
+
+## 5.4 Correction Factors
+
+Inputs with defaults and tooltips:
+
+- Discharge coefficient, Kd
+- Backpressure correction factor, Kb
+- Liquid backpressure correction factor, Kw
+- Viscosity correction factor, Kv
+- Rupture-disk combination factor, Kc
+- Steam correction factors where applicable
+- Compressibility factor, Z
+- Isentropic coefficient, k
+- Molecular weight
+
+Every factor shall show:
+
+- Symbol
+- Value
+- Units if applicable
+- Source type
+- User-entered or default
+- Short engineering explanation
+
+---
+
+# 6. Gas / Vapour PSV Tab
+
+Use secondary tabs:
+
+1. Fluid Properties
+2. Relief Conditions
+3. Flow Regime
+4. Sizing Results
+5. Sensitivity
+
+## 6.1 Fluid Properties
+
+Inputs:
+
+- Fluid name
+- Composition description
+- Molecular weight
+- Compressibility factor at relieving conditions
+- Isentropic coefficient, Cp/Cv
+- Relieving temperature
+- Required relieving mass flow
+- Optional standard volumetric flow
+- Optional density at relieving conditions
+
+Allow the user to select whether the relieving load is supplied as:
+
+- kg/h
+- kg/s
+- lb/h
+- Nm³/h
+- Sm³/h
+- actual m³/h
+- SCFM
+
+Require sufficient reference conditions when converting standard volumetric flow to mass flow.
+
+Do not silently assume standard temperature or pressure. Display and store the selected reference conditions.
+
+## 6.2 Relief Conditions
+
+Inputs:
+
+- Set pressure
+- Allowable overpressure
+- Relieving pressure
+- Backpressure
+- Atmospheric pressure
+- Relieving temperature
+- Required mass flow
+- Kd
+- Kb
+- Kc
+
+## 6.3 Flow Regime
+
+Determine whether the gas flow is:
+
+- Critical or choked
+- Subcritical or non-choked
+
+Calculate and display:
+
+- Upstream absolute pressure
+- Downstream absolute pressure
+- Pressure ratio
+- Critical pressure ratio
+- Selected flow regime
+
+Show the equation used and all substituted values.
+
+If subcritical flow is identified, use the correct subcritical formulation rather than applying the critical-flow equation.
+
+Add warnings for:
+
+- Invalid absolute pressure
+- Backpressure greater than or equal to upstream pressure
+- k less than or equal to 1
+- Z less than or equal to zero
+- Temperature at or below absolute zero
+- Missing molecular weight
+- Unusually high backpressure
+- Correction factors outside normal mathematical ranges
+
+## 6.4 Gas Sizing Results
+
+Display:
+
+- Required relieving rate
+- Calculated required effective area
+- Required area in mm²
+- Required area in cm²
+- Required area in in²
+- Selected standard orifice
+- Selected effective area
+- Area margin
+- Percentage utilisation
+- Calculated capacity of selected orifice
+- Flow regime
+- Governing pressure differential
+- All applied correction factors
+
+Show the calculation in an expandable, step-by-step section.
+
+---
+
+# 7. Liquid PSV Tab
+
+Use secondary tabs:
+
+1. Liquid Properties
+2. Relief Conditions
+3. Viscosity Iteration
+4. Sizing Results
+5. Sensitivity
+
+## 7.1 Liquid Properties
+
+Inputs:
+
+- Fluid name
+- Density at relieving temperature
+- Specific gravity at relieving temperature
+- Dynamic viscosity
+- Kinematic viscosity
+- Vapour pressure at relieving temperature
+- Relieving temperature
+- Required volumetric flow
+- Required mass flow
+
+Allow either mass flow or volumetric flow as the primary input and calculate the other from density.
+
+## 7.2 Liquid Relief Conditions
+
+Inputs:
+
+- Upstream relieving pressure
+- Total backpressure
+- Differential pressure across PSV
+- Kd
+- Kw
+- Kv
+- Kc
+- Required liquid relieving rate
+
+## 7.3 Liquid Sizing
+
+Implement the applicable single-phase incompressible-liquid sizing method.
+
+Display:
+
+- Pressure basis
+- Differential pressure
+- Density or specific gravity basis
+- Preliminary area
+- Reynolds number, if required by the selected method
+- Viscosity correction factor
+- Corrected area
+- Selected standard orifice
+- Final capacity margin
+
+## 7.4 Viscosity Correction Iteration
+
+If viscosity correction requires iterative evaluation:
+
+1. Calculate a provisional area using Kv = 1.
+2. Calculate the applicable Reynolds-number parameter.
+3. Determine or calculate Kv.
+4. Recalculate area.
+5. Repeat until convergence.
+6. Stop after a safe maximum iteration count.
+7. Display iteration count and convergence status.
+
+Show the iteration history in an expandable table:
+
+- Iteration
+- Trial area
+- Reynolds parameter
+- Kv
+- Corrected area
+- Percentage change
+
+Warn if:
+
+- The iteration does not converge
+- Liquid may flash
+- Inlet pressure is close to vapour pressure
+- The service may not remain single phase
+- Two-phase sizing may be required
+- Differential pressure is zero or negative
+
+Do not use the single-phase liquid equation if the validation indicates flashing or two-phase flow. Mark the result as outside the implemented method.
+
+---
+
+# 8. Vapour Breakthrough Tab
+
+Title this section:
+
+**Vapour Breakthrough / Gas Blow-by**
+
+Use secondary tabs:
+
+1. Scenario Definition
+2. Source Conditions
+3. Restriction Device
+4. Breakthrough Load
+5. PSV Sizing
+6. Results
+
+The purpose is to estimate gas or vapour flow from a higher-pressure source into a lower-pressure protected system following failure or full opening of a connecting restriction.
+
+## 8.1 Scenario Definition
+
+Inputs:
+
+- Scenario name
+- High-pressure source equipment
+- Low-pressure protected equipment
+- Failure description
+- Control valve fails open
+- Regulator fails open
+- Bypass valve left open
+- Manual valve inadvertently opened
+- Restriction orifice connection
+- Heat-exchanger tube rupture
+- Other gas breakthrough source
+- Source pressure basis
+- Destination relieving pressure basis
+- Steady-state or transient screening basis
+- Engineering notes
+
+## 8.2 Source Conditions
+
+Inputs:
+
+- Source upstream pressure
+- Source temperature
+- Source molecular weight
+- Source compressibility factor
+- Source Cp/Cv
+- Source density
+- Destination relieving pressure
+- Atmospheric pressure
+
+## 8.3 Restriction Device
+
+Allow the user to choose:
+
+- Control valve
+- Fixed restriction orifice
+- Pipe or nozzle
+- Known effective flow area
+- Known Cv
+- Known rated flow
+- User-entered breakthrough load
+
+For control-valve mode, provide inputs for:
+
+- Valve Cv
+- Valve travel position
+- Valve opening percentage
+- Recovery or correction factors
+- Gas expansion factor if applicable
+- Valve style
+- Manufacturer-rated capacity option
+
+For restriction-orifice mode, provide:
+
+- Bore diameter
+- Discharge coefficient
+- Upstream pipe diameter
+- Beta ratio
+- Effective flow area
+
+For known-area mode, provide:
+
+- Effective flow area
+- Discharge coefficient
+
+## 8.4 Breakthrough Flow Logic
+
+Determine:
+
+- Upstream absolute pressure
+- Destination absolute pressure
+- Pressure ratio
+- Critical pressure ratio
+- Choked or subcritical breakthrough flow
+- Breakthrough mass flow
+- Breakthrough standard volumetric flow
+- Destination PSV required area
+
+Use a suitable compressible-flow calculation for the selected restriction model.
+
+Keep the flow-through-control-valve method separate from the flow-through-orifice method.
+
+Do not treat Cv and physical bore area as equivalent unless an explicit conversion basis is supplied.
+
+If the user selects “manufacturer-rated flow,” report that flow directly and identify it as externally supplied.
+
+## 8.5 Results
+
+Display:
+
+- Calculated breakthrough rate
+- Flow regime at failed restriction
+- High-pressure source conditions
+- Low-pressure relieving conditions
+- Restriction basis
+- PSV gas-sizing inputs
+- Required PSV area
+- Selected API orifice
+- Capacity margin
+
+Add a prominent warning:
+
+“Gas breakthrough calculations can be sensitive to upstream-system response, control-valve characteristics, line pressure loss, source inventory, and destination pressure. Confirm the final relieving load using an approved process simulation or validated vendor method where required.”
+
+---
+
+# 9. Fire Case Tab
+
+Use secondary tabs:
+
+1. Fire Scenario
+2. Equipment Geometry
+3. Wetted Area
+4. Heat Input
+5. Vapour Generation
+6. PSV Sizing
+7. Results
+
+## 9.1 Fire Scenario Inputs
+
+Inputs:
+
+- Equipment type
+- Vessel orientation
+- Insulated or uninsulated
+- Insulation certification basis
+- Environmental factor
+- Drainage quality
+- Firefighting provision
+- Fire-exposure elevation limit
+- Normal liquid level
+- Relieving liquid level
+- Relieving pressure
+- Relieving temperature
+- Latent heat at relieving conditions
+- Molecular weight of generated vapour
+- Compressibility factor
+- Cp/Cv
+
+Allow the environmental factor to be:
+
+- Selected from a configurable list
+- Entered manually
+- Marked as assumed
+
+Do not hard-code an environmental factor without displaying its basis.
+
+## 9.2 Equipment Geometry
+
+Support:
+
+- Vertical cylindrical vessel with heads
+- Horizontal cylindrical vessel with heads
+- Sphere
+- Heat exchanger shell
+- User-entered wetted area
+- Custom equipment
+
+Geometry inputs may include:
+
+- Inside diameter
+- Outside diameter
+- Tangent-to-tangent length
+- Head type
+- Head depth
+- Liquid height
+- Vessel elevation
+- Fire-exposure height limit
+- Number of identical vessels
+
+## 9.3 Wetted Surface Area
+
+Calculate the wetted area exposed to fire.
+
+Requirements:
+
+- Do not use total vessel surface area automatically.
+- Apply the selected fire-exposure height limit.
+- Consider liquid level.
+- Distinguish shell area and head area.
+- Provide a user override.
+- Show the calculated geometric basis.
+- Include a simple vessel sketch or SVG showing:
+  - Vessel outline
+  - Liquid level
+  - Fire-exposure limit
+  - Wetted area region
+
+Display wetted area in:
+
+- m²
+- ft²
+
+## 9.4 Fire Heat Input
+
+Implement the applicable API fire-heat-input relationship as a configurable calculation.
+
+Display:
+
+- Wetted area
+- Environmental factor
+- Insulation factor or basis
+- Heat-input coefficient
+- Area exponent
+- Calculated absorbed heat
+- Heat input in kW
+- Heat input in MJ/h
+- Heat input in Btu/h
+
+Place the equation constants in a configuration file and label them with the adopted standard edition.
+
+Do not invent or silently change constants.
+
+## 9.5 Vapour Generation
+
+Calculate the vapour-generation rate from:
+
+- Absorbed heat input
+- Latent heat at relieving conditions
+
+Display:
+
+- Heat input
+- Latent heat
+- Generated vapour mass flow
+- Generated vapour flow in kg/h and lb/h
+
+Validate that latent heat is positive.
+
+Clearly state that fluid properties should correspond to relieving conditions.
+
+## 9.6 Fire Case PSV Sizing
+
+Pass the generated vapour load into the gas or vapour PSV sizing engine.
+
+Display:
+
+- Fire-generated relieving load
+- Relieving pressure
+- Relieving temperature
+- Required PSV area
+- Selected standard orifice
+- Selected-orifice capacity
+- Capacity margin
+- Fire-case overpressure basis
+- All correction factors
+
+---
+
+# 10. Scenario Comparison Tab
+
+Allow multiple saved scenarios, including:
+
+- Blocked outlet
+- Gas blow-by
+- Vapour breakthrough
+- External fire
+- Control valve failure
+- Cooling failure
+- Utility failure
+- Thermal expansion
+- Tube rupture
+- User-defined scenario
+
+Create a comparison grid with:
+
+- Scenario name
+- Scenario type
+- Fluid phase
+- Relieving pressure
+- Relieving temperature
+- Relieving mass flow
+- Required area
+- Selected orifice
+- Capacity margin
+- Status
+- Notes
+
+Highlight the governing scenario based primarily on required effective area, not merely the largest mass flow.
+
+Provide:
+
+- Sort by required area
+- Sort by mass flow
+- Enable or disable scenario
+- Duplicate scenario
+- Delete scenario
+- View calculation
+- Mark as independently protected
+- Mark as simultaneous or non-simultaneous
+
+Add a bar chart comparing required area by scenario.
+
+Clearly identify:
+
+- Governing scenario
+- Largest relieving load
+- Largest required area
+- Different phases among scenarios
+- Scenarios outside the implemented calculation scope
+
+Do not automatically combine scenario loads unless the user explicitly marks them as simultaneous and supplies an approved combination basis.
+
+---
+
+# 11. API Orifice Selection
+
+Create a configurable data module for standard API 526 effective orifice designations.
+
+Include the standard letter sequence used for relief-valve effective orifices, with effective areas stored in both in² and mm².
+
+Requirements:
+
+- Keep the data in one clearly named configuration file.
+- Add a source-edition comment.
+- Make the table easy to update.
+- Verify area conversion between in² and mm².
+- Select the smallest standard area greater than or equal to the required calculated area.
+- If the required area exceeds the largest configured standard orifice, show a clear error and do not silently select the largest size.
+- Allow the engineer to override the automatic selection.
+- Require an override note.
+- Show selected-area margin.
+
+Display:
+
+- Required area
+- Recommended designation
+- Recommended effective area
+- Next larger designation
+- User-selected designation
+- Area margin
+- Percentage utilisation
+
+Add this note:
+
+“Final valve selection must be verified using the certified capacity and approved sizing data of the actual manufacturer and model.”
+
+---
+
+# 12. Units and Conversions
+
+Support two main unit systems:
+
+## SI
+
+- Pressure: kPa, kPa(g), kPa(a), bar(g), bar(a), MPa
+- Temperature: °C and K
+- Mass flow: kg/h and kg/s
+- Volumetric flow: m³/h
+- Standard flow: Nm³/h and Sm³/h
+- Area: mm² and cm²
+- Density: kg/m³
+- Dynamic viscosity: cP and Pa·s
+- Energy: kJ, MJ/h and kW
+- Length: mm and m
+
+## US Customary
+
+- Pressure: psig and psia
+- Temperature: °F and °R
+- Mass flow: lb/h
+- Volumetric flow: US gpm and ft³/min
+- Standard flow: SCFM
+- Area: in²
+- Density: lb/ft³
+- Dynamic viscosity: cP
+- Energy: Btu/lb and Btu/h
+- Length: inches and feet
+
+Requirements:
+
+- Store a consistent internal unit system.
+- Convert only at the input and display boundaries.
+- Label gauge and absolute pressure explicitly.
+- Preserve physical value when switching units.
+- Do not reinterpret the displayed number when the unit changes.
+- Centralise all conversions in unitConversions.ts.
+- Add automated conversion tests.
+
+---
+
+# 13. Input Validation
+
+Implement field-level and calculation-level validation.
+
+Examples:
+
+- Required fields cannot be blank.
+- Pressure cannot be physically invalid.
+- Absolute pressure must be greater than zero.
+- Upstream pressure must exceed downstream pressure.
+- Relieving temperature must be physically valid.
+- Molecular weight must be positive.
+- Compressibility factor must be positive.
+- Cp/Cv must be greater than 1 for the implemented gas method.
+- Density must be positive.
+- Latent heat must be positive.
+- Correction factors must be positive.
+- Required area must be finite and positive.
+- Vessel dimensions must be positive.
+- Liquid level cannot exceed vessel geometry.
+- Fire-exposure height cannot be negative.
+- Selected standard orifice cannot be smaller than required unless explicitly marked as failing.
+
+Classify validation messages as:
+
+- Error: prevents calculation
+- Warning: allows calculation but requires review
+- Information: engineering guidance
+
+Do not hide invalid results. Show why the calculation cannot proceed.
+
+---
+
+# 14. Results Presentation
+
+Create a sticky summary card containing:
+
+- Scenario
+- Fluid phase
+- Required relieving rate
+- Relieving pressure
+- Relieving temperature
+- Required effective area
+- Selected orifice designation
+- Selected effective area
+- Capacity margin
+- Calculation status
+
+Status values:
+
+- PASS
+- PASS WITH WARNINGS
+- FAIL
+- INCOMPLETE
+- OUTSIDE IMPLEMENTED METHOD
+
+Use colour and icons, but never rely on colour alone.
+
+Add expandable results sections for:
+
+- Inputs used
+- Unit conversions
+- Equation
+- Substituted equation
+- Intermediate values
+- Correction factors
+- Required area
+- Standard-orifice selection
+- Warnings
+- Assumptions
+
+---
+
+# 15. Sensitivity Analysis
+
+For gas, liquid, fire, and breakthrough calculations, include optional sensitivity charts.
+
+Allow variation of:
+
+- Relieving pressure
+- Backpressure
+- Relieving temperature
+- Molecular weight
+- Compressibility factor
+- Required flow
+- Kd
+- Kb or Kw
+- Kv
+- Fire environmental factor
+- Wetted area
+- Latent heat
+
+Plot:
+
+- Required area versus selected variable
+- Capacity margin versus selected variable
+
+The sensitivity calculation must reuse the same engineering calculation functions as the main calculation.
+
+---
+
+# 16. Calculation Report
+
+Create a printable calculation report page.
+
+Report sections:
+
+1. Cover information
+2. Project data
+3. Equipment data
+4. Code and standard basis
+5. Scenario description
+6. Input data
+7. Assumptions
+8. Unit conversions
+9. Relieving-load calculation
+10. PSV sizing calculation
+11. Equation and substitution
+12. Intermediate values
+13. API orifice selection
+14. Capacity margin
+15. Warnings and limitations
+16. Scenario comparison
+17. Engineering notes
+18. Prepared-by and checked-by fields
+19. Revision history
+
+Provide:
+
+- Print-friendly CSS
+- Browser Print / Save as PDF
+- Export calculation data to JSON
+- Export summary table to CSV
+
+The report must display the calculation with enough detail for an engineer to independently reproduce it.
+
+Do not generate a black-box result.
+
+---
+
+# 17. Calculation Traceability
+
+Every calculation result shall record:
+
+- Calculation method ID
+- Method version
+- Standard reference title
+- Adopted edition entered in settings
+- Input values
+- Original input units
+- Converted internal values
+- Constants
+- Correction factors
+- Intermediate values
+- Final value
+- Timestamp
+- Application version
+
+Create a “Calculation Audit” drawer that shows the trace as structured JSON and a human-readable calculation sequence.
+
+---
+
+# 18. Tests and Verification
+
+Create automated tests for:
+
+- Gauge-to-absolute pressure conversion
+- Temperature conversions
+- Area conversions
+- Mass-flow conversions
+- Gas critical pressure ratio
+- Critical versus subcritical flow selection
+- Gas required-area calculation
+- Liquid required-area calculation
+- Viscosity iteration convergence
+- Fire wetted-area geometry
+- Fire heat input
+- Vapour-generation rate
+- Breakthrough flow
+- API orifice selection
+- Required area exceeding the largest configured orifice
+- Invalid input handling
+- Unit switching without physical-value changes
+
+Include at least one transparent demonstration example for:
+
+- Gas or vapour service
+- Liquid service
+- Vapour breakthrough
+- External fire case
+
+Mark all demonstration data clearly as:
+
+**DEMONSTRATION DATA – NOT FOR DESIGN**
+
+Do not select demonstration values merely to force a desired answer.
+
+---
+
+# 19. User Experience Requirements
+
+- Provide useful tooltips for engineering terminology.
+- Preserve data when changing tabs.
+- Recalculate immediately after valid input changes.
+- Use debouncing for expensive chart recalculation.
+- Show unsaved-change status.
+- Request confirmation before clearing a project.
+- Keep advanced inputs collapsed by default.
+- Provide “Basic” and “Advanced” modes.
+- Add a searchable engineering glossary.
+- Add contextual warnings beside the relevant input.
+- Use accessible labels and keyboard navigation.
+- Ensure responsive layout with no horizontal overflow on normal screens.
+
+---
+
+# 20. Important Engineering Safeguards
+
+The software must:
+
+- Never mix gauge and absolute pressure.
+- Never silently assume atmospheric pressure.
+- Never silently assume standard conditions.
+- Never use a gas equation for liquid service.
+- Never use a liquid equation for flashing or two-phase flow.
+- Never apply a choked-flow equation when the calculated regime is subcritical.
+- Never present a standard orifice selection smaller than the required area as passing.
+- Never claim that selected effective area equals manufacturer-certified capacity.
+- Never automatically combine unrelated relief scenarios.
+- Never invent unavailable physical properties.
+- Never replace a missing value with zero.
+- Never hide an assumption.
+- Never claim standards compliance solely because a numerical result was produced.
+
+If the calculation is outside the implemented method, stop and display:
+
+“OUTSIDE IMPLEMENTED METHOD – specialist analysis required.”
+
+Examples include:
+
+- Two-phase flow
+- Reactive systems
+- Polymerising fluids
+- Non-Newtonian fluids
+- Complex flashing service
+- Dynamic depressuring
+- Transient source depletion
+- Multiphase tube rupture
+- Unverified insulation credit
+- Cases requiring DIERS or other specialist methods
+
+---
+
+# 21. Initial Build Deliverable
+
+Generate the complete working project now.
+
+The first build must include:
+
+1. Functional navigation
+2. Design Basis tab
+3. Gas / Vapour sizing
+4. Liquid sizing
+5. Vapour Breakthrough calculation
+6. Fire Case calculation
+7. Scenario Comparison
+8. Standard-orifice selection
+9. SI and US unit conversion
+10. Local project saving
+11. JSON import and export
+12. Printable calculation report
+13. Automated tests
+14. Demonstration examples
+15. Responsive professional UI
+
+Do not return only a design description.
+
+Create all required project files, install the required packages, and ensure that the application runs in the Google AI Studio preview.
+
+After generating the project:
+
+1. Run the build.
+2. Run the tests.
+3. Fix TypeScript errors.
+4. Fix runtime errors.
+5. Check all tabs in the preview.
+6. Verify that demonstration calculations return finite, traceable results.
+7. Verify that unit switching preserves the physical values.
+8. Verify that the selected orifice is never smaller than the required area.
+9. Summarise any calculation method that still requires the engineer to insert licensed standard data.
+
+# 22. Standalone HTML Application Export
+
+A CRITICAL requirement of this project is the ability to export the entire PSV Engineering Suite as a portable standalone HTML application.
+
+The user must be able to click:
+
+**Export → Standalone HTML**
+
+from the application's dashboard.
+
+The application shall then generate and download a file such as:
+
+PSV_Engineering_Suite.html
+
+or, when exporting a specific project:
+
+PSV_<EquipmentTag>_<PSVTag>_Rev_<Revision>.html
+
+
+## 22.1 Standalone Application Requirement
+
+The exported HTML file must be capable of being copied to another computer and opened directly by double-clicking it.
+
+Example:
+
+file:///C:/Engineering/PSV/PSV_Engineering_Suite.html
+
+The standalone application must NOT require:
+
+- Node.js
+- npm
+- Vite
+- Python
+- a web server
+- Google AI Studio
+- Gemini
+- Internet access
+- CDN-hosted JavaScript
+- CDN-hosted CSS
+- external fonts
+- external icon libraries
+- external chart libraries
+- external calculation services
+- an API key
+- installation
+
+It must run entirely inside a modern browser.
+
+The exported file must therefore be:
+
+**self-contained and offline capable.**
+
+
+# 22.2 Architecture Requirement
+
+Design the application from the beginning so that standalone HTML export is possible.
+
+The entire engineering calculation engine must execute client-side in TypeScript/JavaScript.
+
+Do NOT require a server or backend for:
+
+- Gas PSV sizing
+- Liquid PSV sizing
+- Fire-case calculations
+- Vapour breakthrough calculations
+- API orifice selection
+- Unit conversion
+- Scenario comparison
+- Sensitivity calculations
+- Report generation
+- Project serialization
+- Project loading
+- Validation
+
+Do not introduce a Node.js backend merely for calculations.
+
+The normal development version may use React + TypeScript + Vite, but the production application must be capable of being bundled into a self-contained HTML artifact.
+
+
+# 22.3 Single-File Build
+
+Configure the project so that a production build can create:
+
+dist/
+    PSV_Engineering_Suite.html
+
+Prefer a single-file Vite build strategy.
+
+Bundle into the HTML:
+
+- Compiled JavaScript
+- CSS
+- Application configuration
+- API orifice tables
+- Unit definitions
+- Engineering constants
+- SVG icons
+- Application metadata
+
+Avoid runtime references to assets in:
+
+/assets/
+
+The final standalone version should preferably consist of ONE HTML file.
+
+Do not generate external:
+
+.js
+.css
+.json
+.svg
+
+files where bundling into the HTML is practical.
+
+
+# 22.4 No External Runtime Dependencies
+
+The standalone HTML application must not make network requests merely to operate.
+
+After loading the exported file, all normal PSV calculation functionality must remain available with the network disconnected.
+
+This includes:
+
+- Design Basis
+- Gas / Vapour sizing
+- Liquid sizing
+- Vapour Breakthrough
+- Fire Case
+- Scenario Comparison
+- Final PSV Selection
+- Sensitivity plots
+- Calculation Report
+- Project Save / Load
+- JSON Import / Export
+- CSV Export
+- Printing
+- Local calculations
+
+All libraries required at runtime must be bundled into the generated application.
+
+
+# 22.5 Dashboard Export Function
+
+Add an **Export** menu in the main toolbar.
+
+Options:
+
+Export
+├── Standalone HTML
+├── Project JSON
+├── Calculation Data CSV
+├── Print Calculation Report
+└── Backup Project
+
+The primary option shall be:
+
+**Export Standalone HTML**
+
+
+# 22.6 Export Standalone HTML Behaviour
+
+When selected, show a dialog:
+
+### Export Standalone PSV Application
+
+Options:
+
+[ ] Include current project data
+[ ] Include all saved scenarios
+[ ] Include calculation audit trail
+[ ] Include revision history
+[ ] Include engineering notes
+[ ] Include demonstration cases
+
+Project:
+
+Project Name: __________
+
+Equipment Tag: __________
+
+PSV Tag: __________
+
+Revision: __________
+
+
+Then provide:
+
+**Generate Standalone HTML**
+
+The application shall generate the file entirely client-side and trigger a normal browser download.
+
+
+# 22.7 Two Standalone Export Modes
+
+Support two export modes.
+
+
+## MODE A – Blank Engineering Application
+
+Export:
+
+PSV_Engineering_Suite.html
+
+This contains the complete application but no current project-specific calculation data.
+
+When opened, it behaves as a fresh installation.
+
+The engineer can create new PSV calculations from this HTML file.
+
+
+## MODE B – Project-Populated Application
+
+Export:
+
+PSV_V101_PSV101_RevA.html
+
+This contains:
+
+- The complete application
+- Current project
+- Equipment information
+- PSV design basis
+- Relief scenarios
+- Fluid properties
+- Fire-case information
+- Vapour breakthrough information
+- Calculation results
+- Engineering notes
+- Revision data
+
+When another engineer opens the HTML file, the embedded project shall automatically load.
+
+This effectively creates a portable PSV calculation package.
+
+
+# 22.8 Project Data Embedding
+
+The standalone HTML shall be capable of containing embedded project JSON.
+
+Use an embedded data structure such as:
+
+window.__PSV_PROJECT_DATA__
+
+or another robust equivalent.
+
+The application shall detect embedded project data at startup.
+
+If embedded project data exists:
+
+Load it automatically.
+
+If it does not exist:
+
+Start with a blank project.
+
+
+# 22.9 Preserve Calculation Traceability
+
+A project-populated standalone HTML export must preserve:
+
+- Input values
+- Input units
+- Converted SI/internal values
+- Selected PSV scenario
+- Calculation method
+- Calculation version
+- Required relieving load
+- Required area
+- Selected API orifice
+- Correction factors
+- Assumptions
+- Warnings
+- Engineering notes
+- Revision
+- Calculation timestamp
+- Software version
+
+This information must remain accessible through the:
+
+**Calculation Audit**
+
+section when the standalone HTML is opened.
+
+
+# 22.10 Offline Charts
+
+Charts must continue functioning offline.
+
+Do not retrieve chart libraries from a CDN.
+
+For example, if Recharts is used during development, it must be included in the generated application bundle.
+
+The standalone application must still display:
+
+- Required area by scenario
+- Relief load comparison
+- Sensitivity plots
+- Capacity margin
+- Any fire-case plots
+
+without Internet access.
+
+
+# 22.11 Offline Icons and Graphics
+
+Icons and graphics must also work offline.
+
+Use:
+
+- Bundled SVG
+- Inline SVG
+- Bundled Lucide icons
+
+Do not use:
+
+https://...
+
+references for icons or graphics.
+
+The vessel/fire-case diagram must use inline SVG or application-generated SVG.
+
+
+# 22.12 Fonts
+
+Use a system-font stack such as:
+
+font-family:
+  Inter,
+  "Segoe UI",
+  Roboto,
+  Helvetica,
+  Arial,
+  sans-serif;
+
+Do not require Google Fonts or another Internet font service for the standalone application.
+
+
+# 22.13 Local Project Saving
+
+The standalone HTML application must support:
+
+Save Project
+
+using browser localStorage.
+
+Use an application-specific namespace such as:
+
+psvEngineeringSuite.projects
+
+Allow:
+
+- Save project
+- Save As
+- Rename
+- Duplicate
+- Delete
+- Load
+- Export
+- Import
+
+Also provide:
+
+**Export Project JSON**
+
+because localStorage is browser/profile dependent.
+
+
+# 22.14 JSON Project Format
+
+Define a versioned project structure.
+
+Example:
+
+{
+  "application": "PSV Engineering Suite",
+  "applicationVersion": "1.0.0",
+  "schemaVersion": 1,
+  "project": {},
+  "equipment": {},
+  "designBasis": {},
+  "scenarios": [],
+  "psvSelection": {},
+  "audit": {},
+  "revisionHistory": []
+}
+
+Include schemaVersion so older saved PSV calculations can be migrated if the application data model changes later.
+
+
+# 22.15 Importing Projects
+
+Add:
+
+**Open Project JSON**
+
+The user shall be able to select:
+
+*.json
+
+from their computer.
+
+Validate the file before loading.
+
+Check:
+
+- Application identifier
+- Schema version
+- Required fields
+- Numerical input validity
+- Scenario types
+- Unit definitions
+
+Never execute JavaScript contained in imported project data.
+
+Treat imported JSON purely as data.
+
+
+# 22.16 Self-Export Architecture
+
+Implement a reusable module:
+
+src/export/
+    standaloneHtmlExporter.ts
+    projectExporter.ts
+    csvExporter.ts
+    reportExporter.ts
+
+The standaloneHtmlExporter must:
+
+1. Obtain the bundled application template.
+2. Serialize the current project if requested.
+3. Inject project data safely.
+4. Escape embedded data correctly.
+5. Generate a Blob with MIME type text/html.
+6. Create an object URL.
+7. Trigger browser download.
+8. Revoke the object URL afterwards.
+
+Keep this functionality separate from PSV calculation logic.
+
+
+# 22.17 IMPORTANT – Do Not Simply Save the Current DOM
+
+Do NOT implement standalone export by simply serializing:
+
+document.documentElement.outerHTML
+
+because the running development DOM may depend on JavaScript bundles and runtime resources that are not embedded.
+
+Instead generate the standalone HTML from the actual production bundle/template so the downloaded file is independently executable.
+
+
+# 22.18 HTML Export Verification
+
+Create an automated/manual verification procedure.
+
+After building the application:
+
+1. Generate PSV_Engineering_Suite.html.
+2. Confirm there are no required external JS files.
+3. Confirm there are no required external CSS files.
+4. Confirm there are no CDN dependencies.
+5. Disconnect network access.
+6. Open the HTML using file://.
+7. Perform a gas PSV calculation.
+8. Perform a liquid PSV calculation.
+9. Perform a vapour breakthrough calculation.
+10. Perform a fire-case calculation.
+11. Switch between SI and US Customary units.
+12. Open Scenario Comparison.
+13. Display sensitivity charts.
+14. Save a project locally.
+15. Export the project as JSON.
+16. Import the JSON again.
+17. Print the calculation report.
+18. Export a populated standalone HTML.
+19. Close the browser.
+20. Open the newly exported HTML.
+21. Confirm all project data and calculation results are restored.
+
+The standalone-export feature shall not be considered complete until these tests pass.
+
+
+# 22.19 Dashboard Status
+
+Add a small status section:
+
+APPLICATION STATUS
+
+Mode:
+Standalone / Development
+
+Application Version:
+1.0.0
+
+Calculation Engine:
+1.0.0
+
+Project Schema:
+1
+
+Network Required:
+No
+
+Project:
+Saved / Unsaved
+
+Last Calculation:
+date/time
+
+
+# 22.20 Standalone Engineering Philosophy
+
+The application is intended to function similarly to a traditional desktop engineering calculator even though its runtime is HTML/JavaScript.
+
+Therefore prioritize:
+
+- Deterministic calculations
+- Offline operation
+- Portability
+- Calculation transparency
+- Engineering traceability
+- Data ownership
+- No vendor lock-in
+- No cloud dependency
+- No mandatory login
+- No telemetry requirement
+- No AI dependency
+
+The generated standalone HTML must remain useful even if the original Google AI Studio project no longer exists.

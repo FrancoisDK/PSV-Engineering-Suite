@@ -1,0 +1,6 @@
+{
+  "name": "PSV Engineering Suite",
+  "description": "Preliminary pressure safety valve sizing and relief scenario calculation suite referencing API 520, API 521, API 526, and ASME BPVC Section VIII.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
